@@ -101,6 +101,59 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
 .hint{text-align:center;font-size:10px;color:var(--text2);margin-top:6px;max-width:800px;margin-left:auto;margin-right:auto;}
 @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+/* Navegação de módulos */
+.nav-btn{flex:1;background:none;border:1px solid var(--border);color:var(--text2);padding:5px 4px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s;white-space:nowrap;}
+.nav-btn:hover{border-color:var(--accent);color:var(--accent);}
+.nav-btn.active{background:rgba(61,126,255,.15);border-color:var(--accent);color:var(--accent);}
+/* Dashboard */
+#painel-dash{display:none;flex:1;overflow-y:auto;padding:12px 10px;flex-direction:column;gap:10px;}
+#painel-dash.on{display:flex;}
+.dash-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 13px;}
+.dash-kpi{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:2px;}
+.kpi{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 11px;text-align:center;}
+.kpi-n{font-size:22px;font-weight:700;color:var(--accent);}
+.kpi-l{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.bar-lbl{font-size:10px;color:var(--text2);width:56px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bar-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s ease;}
+.bar-val{font-size:9px;color:var(--text2);width:22px;text-align:right;flex-shrink:0;}
+.chart-line{display:flex;align-items:flex-end;gap:3px;height:50px;margin:6px 0;}
+.chart-col{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;}
+.chart-bar{width:100%;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px;transition:height .4s ease;}
+.chart-bar.doc{background:var(--accent2);}
+.chart-lbl{font-size:8px;color:var(--text2);}
+.dash-tit{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px;}
+.log-item{font-size:10px;color:var(--text2);padding:3px 0;border-bottom:1px solid var(--border);display:flex;gap:6px;}
+.log-tipo{color:var(--accent2);font-weight:600;min-width:60px;}
+.log-usr{color:var(--text);font-weight:500;}
+.log-ts{color:var(--text2);margin-left:auto;}
+/* Comparativo */
+#painel-comp{display:none;flex:1;overflow-y:auto;padding:14px 12px;flex-direction:column;gap:10px;}
+#painel-comp.on{display:flex;}
+.comp-area{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;}
+.comp-area label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;}
+.comp-area textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:6px;font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;resize:vertical;min-height:80px;}
+.comp-area textarea:focus{border-color:var(--accent);}
+.comp-inp{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 9px;border-radius:5px;font-size:11px;font-family:'Sora',sans-serif;outline:none;width:100%;}
+.comp-inp:focus{border-color:var(--accent);}
+.btn-comp{width:100%;background:var(--accent2);border:none;color:#0f1117;padding:9px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s;}
+.btn-comp:hover{opacity:.9;}
+.btn-comp:disabled{opacity:.5;cursor:wait;}
+/* Admin */
+#painel-admin{display:none;flex:1;overflow-y:auto;padding:14px 12px;flex-direction:column;gap:10px;}
+#painel-admin.on{display:flex;}
+.admin-user{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.admin-nome{font-size:12px;font-weight:600;}
+.admin-user span{font-size:10px;color:var(--text2);}
+.admin-acts{display:flex;gap:4px;}
+.btn-admin{background:none;border:1px solid var(--border);color:var(--text2);padding:3px 7px;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s;}
+.btn-admin:hover{border-color:var(--accent);color:var(--accent);}
+.btn-admin.danger:hover{border-color:var(--danger);color:var(--danger);}
+.admin-form{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;}
+.admin-form input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 9px;border-radius:5px;font-size:12px;font-family:'Sora',sans-serif;outline:none;}
+.admin-form input:focus{border-color:var(--accent);}
+
 </style>
 </head>
 <body>
@@ -140,7 +193,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
     <div class="logo"><div class="logo-ic">📊</div><div><div class="logo-tx">Master IA</div><div class="logo-sub">Assistente Inteligente</div></div></div>
     <button class="btn-new" onclick="novoChat()">＋ Novo chat</button>
   </div>
-  <div class="sb-sec">Conversas</div>
+  <!-- Navegação de módulos -->
+  <div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;gap:4px">
+    <button class="nav-btn active" id="nav-chat" onclick="mostrarModulo('chat',this)" title="Chat">💬 Chat</button>
+    <button class="nav-btn" id="nav-dash" onclick="mostrarModulo('dash',this)" title="Dashboard">📈 Stats</button>
+    <button class="nav-btn" id="nav-comp" onclick="mostrarModulo('comp',this)" title="Comparativo">⚖ Comp.</button>
+    <button class="nav-btn" id="nav-admin" onclick="mostrarModulo('admin',this)" title="Admin" style="display:none">🔧 Admin</button>
+  </div>
+  <div class="sb-sec" id="sb-label">Conversas</div>
   <div class="chat-list" id="cl"></div>
   <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
     <div style="font-size:12px">
@@ -156,6 +216,77 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
   </div>
 </div>
 <div id="main">
+  <!-- PAINEL DASHBOARD -->
+  <div id="painel-dash">
+    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">📈 Dashboard de Uso</div>
+    <div class="dash-kpi" id="dash-kpis">
+      <div class="kpi"><div class="kpi-n" id="kpi-msgs">—</div><div class="kpi-l">Mensagens</div></div>
+      <div class="kpi"><div class="kpi-n" id="kpi-docs">—</div><div class="kpi-l">Documentos</div></div>
+      <div class="kpi"><div class="kpi-n" id="kpi-users">—</div><div class="kpi-l">Usuários ativos</div></div>
+      <div class="kpi"><div class="kpi-n" id="kpi-logins">—</div><div class="kpi-l">Logins</div></div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-tit">Mensagens por usuário</div>
+      <div id="dash-usuarios"></div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-tit">Atividade — últimos 7 dias</div>
+      <div style="display:flex;gap:4px;font-size:9px;color:var(--text2);margin-bottom:4px">
+        <span style="color:var(--accent)">■</span> Mensagens &nbsp;
+        <span style="color:var(--accent2)">■</span> Documentos
+      </div>
+      <div class="chart-line" id="dash-chart"></div>
+    </div>
+    <div class="dash-card" id="dash-docs-card">
+      <div class="dash-tit">Tipos de documento gerados</div>
+      <div id="dash-docs"></div>
+    </div>
+    <div class="dash-card" id="dash-log-card">
+      <div class="dash-tit">Últimas ações</div>
+      <div id="dash-log"></div>
+    </div>
+    <button onclick="carregarDashboard()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:6px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'Sora',sans-serif;width:100%;margin-top:4px">🔄 Atualizar</button>
+  </div>
+
+  <!-- PAINEL COMPARATIVO -->
+  <div id="painel-comp">
+    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">⚖ Comparativo Fiscal</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Cole os dados exportados de cada sistema. Gera Excel com diferenças destacadas.</div>
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+        <label style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Nome sistema A</label>
+        <input class="comp-inp" id="comp-label-a" value="Fiscontech">
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+        <label style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Nome sistema B</label>
+        <input class="comp-inp" id="comp-label-b" value="Domínio">
+      </div>
+    </div>
+    <div class="comp-area">
+      <label>Dados do Sistema A (CSV, TSV ou texto tabulado)</label>
+      <textarea id="comp-dados-a" placeholder="Cole aqui os dados do Fiscontech...&#10;Empresa;Valor&#10;001 - NOME;1500,00"></textarea>
+    </div>
+    <div class="comp-area">
+      <label>Dados do Sistema B</label>
+      <textarea id="comp-dados-b" placeholder="Cole aqui os dados do Domínio...&#10;Empresa;Valor&#10;001 - NOME;1499,00"></textarea>
+    </div>
+    <button class="btn-comp" id="btn-comp" onclick="gerarComparativo()">⚖ Gerar Comparativo Excel</button>
+    <div id="comp-status" style="font-size:11px;color:var(--accent2);text-align:center;display:none;margin-top:4px"></div>
+  </div>
+
+  <!-- PAINEL ADMIN -->
+  <div id="painel-admin">
+    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">🔧 Administração</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Gerencie os usuários do sistema.</div>
+    <div id="admin-lista"></div>
+    <div class="admin-form" style="margin-top:6px">
+      <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Adicionar usuário</div>
+      <input id="adm-user" placeholder="username (sem espaços)" style="text-transform:lowercase">
+      <input id="adm-nome" placeholder="Nome completo">
+      <input id="adm-senha" placeholder="Senha (padrão: master123)">
+      <button onclick="adminAdicionar()" style="background:var(--accent);border:none;color:#fff;padding:7px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif">＋ Adicionar</button>
+    </div>
+  </div>
   <header>
     <div class="hl">
       <button class="btn-sb" onclick="document.getElementById('sidebar').classList.toggle('off')">☰</button>
@@ -463,6 +594,10 @@ async function doLogin(){
     localStorage.setItem('mia_username', session.username);
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('user-display').textContent = session.nome;
+    // Mostra botão Admin só para italo
+    if (session.username === 'italo') {
+      document.getElementById('nav-admin').style.display = '';
+    }
     novoChat();
     loadChatList();
   } catch(e) {
@@ -707,6 +842,229 @@ async function send(){
   document.getElementById('inp').focus();
 }
 
+// ── NAVEGAÇÃO DE MÓDULOS ─────────────────────────────────────────────────────
+let moduloAtivo = 'chat';
+
+function mostrarModulo(mod, btn) {
+  moduloAtivo = mod;
+  // Atualiza botões
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Esconde/mostra painéis laterais
+  const paineis = ['painel-dash','painel-comp','painel-admin'];
+  paineis.forEach(p => {
+    const el = document.getElementById(p);
+    if (el) { el.classList.remove('on'); el.style.display = 'none'; }
+  });
+  document.getElementById('cl').style.display = 'none';
+  document.getElementById('sb-label').style.display = 'none';
+
+  // Esconde/mostra área de chat principal
+  const main = document.getElementById('main');
+  if (mod === 'chat') {
+    document.getElementById('cl').style.display = '';
+    document.getElementById('sb-label').style.display = '';
+    // mostra área de chat
+    document.querySelector('#main > header').style.display = '';
+    document.getElementById('cfg').style.display = '';
+    document.getElementById('nk').style.display = cfg.key ? 'none' : 'block';
+    document.getElementById('msgs').style.display = '';
+    document.querySelector('.iarea').style.display = '';
+    return;
+  }
+
+  // Esconde área de chat
+  document.querySelector('#main > header').style.display = 'none';
+  document.getElementById('cfg').style.display = 'none';
+  document.getElementById('nk').style.display = 'none';
+  document.getElementById('msgs').style.display = 'none';
+  document.querySelector('.iarea').style.display = 'none';
+
+  const painel = document.getElementById('painel-' + mod);
+  if (painel) { painel.style.display = 'flex'; painel.classList.add('on'); }
+
+  if (mod === 'dash') carregarDashboard();
+  if (mod === 'admin') carregarAdmin();
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────────────────────
+async function carregarDashboard() {
+  if (!cfg.srv || !session.token) {
+    document.getElementById('dash-usuarios').innerHTML = '<div style="font-size:11px;color:var(--text2)">Configure o servidor para ver os dados.</div>';
+    return;
+  }
+  try {
+    const r = await fetch(cfg.srv + '/dashboard/stats', {
+      headers: {'X-Token': session.token}
+    });
+    if (!r.ok) throw new Error('Erro ' + r.status);
+    const d = await r.json();
+
+    // KPIs
+    document.getElementById('kpi-msgs').textContent   = d.totais.mensagens;
+    document.getElementById('kpi-docs').textContent   = d.totais.documentos;
+    document.getElementById('kpi-users').textContent  = d.totais.usuarios_ativos;
+    document.getElementById('kpi-logins').textContent = d.totais.logins;
+
+    // Barras por usuário
+    const maxU = Math.max(...d.uso_usuario.map(u => u.total), 1);
+    document.getElementById('dash-usuarios').innerHTML = d.uso_usuario.length === 0
+      ? '<div style="font-size:10px;color:var(--text2)">Nenhuma mensagem registrada ainda.</div>'
+      : d.uso_usuario.map(u => `
+        <div class="bar-row">
+          <div class="bar-lbl">${esc(u.nome)}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(u.total/maxU*100)}%"></div></div>
+          <div class="bar-val">${u.total}</div>
+        </div>`).join('');
+
+    // Gráfico de linha (barras verticais)
+    const maxA = Math.max(...d.atividade.map(a => Math.max(a.mensagens, a.documentos)), 1);
+    document.getElementById('dash-chart').innerHTML = d.atividade.map(a => `
+      <div class="chart-col">
+        <div style="display:flex;gap:1px;align-items:flex-end;height:40px">
+          <div class="chart-bar" style="height:${Math.round(a.mensagens/maxA*38)+2}px;width:8px"></div>
+          <div class="chart-bar doc" style="height:${Math.round(a.documentos/maxA*38)+2}px;width:8px"></div>
+        </div>
+        <div class="chart-lbl">${a.data}</div>
+      </div>`).join('');
+
+    // Documentos por tipo
+    const maxD = Math.max(...d.docs_tipo.map(t => t.total), 1);
+    const docHtml = d.docs_tipo.length === 0
+      ? '<div style="font-size:10px;color:var(--text2)">Nenhum documento gerado ainda.</div>'
+      : d.docs_tipo.map(t => `
+          <div class="bar-row">
+            <div class="bar-lbl">${esc(t.tipo)}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.round(t.total/maxD*100)}%;background:var(--accent2)"></div></div>
+            <div class="bar-val">${t.total}</div>
+          </div>`).join('');
+    document.getElementById('dash-docs').innerHTML = docHtml;
+
+    // Últimas ações (só admin vê)
+    if (d.is_admin && d.ultimos && d.ultimos.length > 0) {
+      document.getElementById('dash-log').innerHTML = d.ultimos.map(e => `
+        <div class="log-item">
+          <span class="log-tipo">${e.tipo}</span>
+          <span class="log-usr">${esc(e.usuario)}</span>
+          <span>${esc(e.detalhe||'')}</span>
+          <span class="log-ts">${e.ts}</span>
+        </div>`).join('');
+      document.getElementById('dash-log-card').style.display = '';
+    } else {
+      document.getElementById('dash-log-card').style.display = 'none';
+    }
+  } catch(e) {
+    document.getElementById('dash-usuarios').innerHTML = `<div style="font-size:11px;color:var(--danger)">${e.message}</div>`;
+  }
+}
+
+// ── COMPARATIVO ───────────────────────────────────────────────────────────────
+async function gerarComparativo() {
+  const dadosA = document.getElementById('comp-dados-a').value.trim();
+  const dadosB = document.getElementById('comp-dados-b').value.trim();
+  const labelA = document.getElementById('comp-label-a').value.trim() || 'Sistema A';
+  const labelB = document.getElementById('comp-label-b').value.trim() || 'Sistema B';
+
+  if (!dadosA || !dadosB) { alert('Preencha os dados dos dois sistemas.'); return; }
+  if (!cfg.srv || !session.token) { alert('Servidor não configurado.'); return; }
+
+  const btn = document.getElementById('btn-comp');
+  const status = document.getElementById('comp-status');
+  btn.disabled = true; btn.textContent = '⏳ Gerando...';
+  status.style.display = 'none';
+
+  try {
+    const r = await fetch(cfg.srv + '/comparativo', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-Token':session.token},
+      body: JSON.stringify({dados_a:dadosA, dados_b:dadosB, label_a:labelA, label_b:labelB})
+    });
+    if (!r.ok) throw new Error('Erro ' + r.status);
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Comparativo_${labelA}_${labelB}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+    status.textContent = '✅ Arquivo gerado e baixado!';
+    status.style.color = 'var(--ok)';
+    status.style.display = 'block';
+  } catch(e) {
+    status.textContent = '⚠ ' + e.message;
+    status.style.color = 'var(--danger)';
+    status.style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = '⚖ Gerar Comparativo Excel';
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────────────────────
+async function carregarAdmin() {
+  if (!cfg.srv || !session.token) return;
+  try {
+    const r = await fetch(cfg.srv + '/admin/listar', {headers:{'X-Token':session.token}});
+    if (!r.ok) {
+      document.getElementById('admin-lista').innerHTML = '<div style="font-size:11px;color:var(--danger)">Acesso negado. Somente admin.</div>';
+      return;
+    }
+    const lista = await r.json();
+    document.getElementById('admin-lista').innerHTML = lista.map(u => `
+      <div class="admin-user">
+        <div>
+          <div class="admin-nome">${esc(u.nome)}</div>
+          <span>${esc(u.username)} ${u.tem_token ? '· 🟢 online' : ''}</span>
+        </div>
+        <div class="admin-acts">
+          <button class="btn-admin" onclick="adminResetar('${esc(u.username)}','${esc(u.nome)}')">🔑 Resetar</button>
+          ${u.username !== 'italo' ? `<button class="btn-admin danger" onclick="adminRemover('${esc(u.username)}')">🗑</button>` : ''}
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('admin-lista').innerHTML = `<div style="font-size:11px;color:var(--danger)">${e.message}</div>`;
+  }
+}
+
+async function adminResetar(username, nome) {
+  const nova = prompt(`Nova senha para ${nome}:`, 'master123');
+  if (!nova) return;
+  const r = await fetch(cfg.srv + '/admin/resetar_senha', {
+    method:'POST', headers:{'Content-Type':'application/json','X-Token':session.token},
+    body: JSON.stringify({username, nova_senha: nova})
+  });
+  if (r.ok) { alert('✅ Senha redefinida para ' + nome); }
+  else { alert('Erro ao redefinir senha.'); }
+}
+
+async function adminRemover(username) {
+  if (!confirm(`Remover o usuário "${username}"? Esta ação não pode ser desfeita.`)) return;
+  const r = await fetch(cfg.srv + '/admin/remover', {
+    method:'POST', headers:{'Content-Type':'application/json','X-Token':session.token},
+    body: JSON.stringify({username})
+  });
+  if (r.ok) { carregarAdmin(); }
+  else { alert('Erro ao remover usuário.'); }
+}
+
+async function adminAdicionar() {
+  const username = document.getElementById('adm-user').value.trim().toLowerCase();
+  const nome     = document.getElementById('adm-nome').value.trim();
+  const senha    = document.getElementById('adm-senha').value.trim() || 'master123';
+  if (!username || !nome) { alert('Preencha username e nome.'); return; }
+  const r = await fetch(cfg.srv + '/admin/adicionar', {
+    method:'POST', headers:{'Content-Type':'application/json','X-Token':session.token},
+    body: JSON.stringify({username, nome, senha})
+  });
+  const d = await r.json();
+  if (r.ok) {
+    document.getElementById('adm-user').value = '';
+    document.getElementById('adm-nome').value = '';
+    document.getElementById('adm-senha').value = '';
+    carregarAdmin();
+    alert('✅ Usuário criado!');
+  } else { alert('Erro: ' + (d.erro||'desconhecido')); }
+}
+
 // INIT
 (function(){
   document.getElementById('ck').value=cfg.key;
@@ -730,6 +1088,7 @@ async function send(){
           session = {token: tok, nome: nom, username: usr||''};
           document.getElementById('login-screen').style.display = 'none';
           document.getElementById('user-display').textContent = nom;
+          if ((usr||'') === 'italo') document.getElementById('nav-admin').style.display = '';
           novoChat();
           loadChatList();
         } else { showLogin(); }
