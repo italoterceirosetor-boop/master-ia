@@ -903,20 +903,50 @@ def auth(req):
 
 def hash_pw(pw): return hashlib.sha256(pw.encode()).hexdigest()
 
-# Usuários fixos no código — sem arquivo JSON
-USERS = {
-    "italo":   {"senha": hash_pw("master123"), "nome": "Ítalo",   "token": ""},
-    "willian": {"senha": hash_pw("master123"), "nome": "Willian", "token": ""},
-    "augusto": {"senha": hash_pw("master123"), "nome": "Augusto", "token": ""},
-    "trinid":  {"senha": hash_pw("master123"), "nome": "Trinid",  "token": ""},
-    "rafael":  {"senha": hash_pw("master123"), "nome": "Rafael",  "token": ""},
-    "diogo":   {"senha": hash_pw("master123"), "nome": "Diogo",   "token": ""},
-    "bia":     {"senha": hash_pw("master123"), "nome": "Bia",     "token": ""},
+# Usuários padrão — base que nunca some
+_USERS_DEFAULT = {
+    "italo":   {"senha": hash_pw("master123"), "nome": "Ítalo"},
+    "willian": {"senha": hash_pw("master123"), "nome": "Willian"},
+    "augusto": {"senha": hash_pw("master123"), "nome": "Augusto"},
+    "trinid":  {"senha": hash_pw("master123"), "nome": "Trinid"},
+    "rafael":  {"senha": hash_pw("master123"), "nome": "Rafael"},
+    "diogo":   {"senha": hash_pw("master123"), "nome": "Diogo"},
+    "bia":     {"senha": hash_pw("master123"), "nome": "Bia"},
 }
 
-def load_users(): return USERS
-def save_users(u): USERS.update(u)
-def seed_users(): pass
+USERS_FILE = DATA_DIR / "users.json"
+
+def load_users():
+    """Carrega usuários do arquivo, mesclando com defaults."""
+    try:
+        if USERS_FILE.exists():
+            saved = json.loads(USERS_FILE.read_text(encoding="utf-8"))
+            # Mescla: defaults + saved (saved tem prioridade — preserva senhas e tokens)
+            merged = {**{k: {**v, "token": ""} for k, v in _USERS_DEFAULT.items()}}
+            for k, v in saved.items():
+                merged[k] = v
+            return merged
+    except Exception:
+        pass
+    return {k: {**v, "token": ""} for k, v in _USERS_DEFAULT.items()}
+
+def save_users(users):
+    """Salva usuários em arquivo persistente."""
+    try:
+        USERS_FILE.write_text(json.dumps(users, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+
+def seed_users():
+    """Garante que todos os usuários default existem no arquivo."""
+    users = load_users()
+    changed = False
+    for k, v in _USERS_DEFAULT.items():
+        if k not in users:
+            users[k] = {**v, "token": ""}
+            changed = True
+    if changed:
+        save_users(users)
 
 @app.route("/", methods=["GET"])
 def index():
@@ -2113,4 +2143,3 @@ def chat_tools():
 
     registrar_evento("mensagem", user)
     return jsonify({"blocos": result_blocks, "stop_reason": data.get("stop_reason","")})
-
