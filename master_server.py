@@ -1647,7 +1647,7 @@ TOOLS = [
 
 
 # ── Rota principal: chat com ferramentas ──────────────────────────────────────
-import anthropic as _anthropic
+import requests as _requests
 
 @app.route("/chat_tools", methods=["POST"])
 def chat_tools():
@@ -1676,20 +1676,27 @@ def chat_tools():
         "Após usar uma ferramenta, comente o resultado brevemente em português."
     )
 
-    client = _anthropic.Anthropic(
-        api_key=api_key,
-        base_url="https://api.iacontaai.com.br",
-        default_headers={"Authorization": f"Bearer {api_key}"}
-    )
-
     try:
-        response = client.messages.create(
-            model=model,
-            max_tokens=4096,
-            system=system,
-            tools=TOOLS,
-            messages=messages
+        resp = _requests.post(
+            "https://api.iacontaai.com.br/v1/messages",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+            },
+            json={
+                "model": model,
+                "max_tokens": 4096,
+                "system": system,
+                "tools": TOOLS,
+                "messages": messages,
+            },
+            timeout=120
         )
+        if not resp.ok:
+            return jsonify({"erro": resp.text}), resp.status_code
+        data = resp.json()
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
@@ -1697,13 +1704,14 @@ def chat_tools():
     result_blocks = []
     tool_calls_made = []
 
-    for block in response.content:
-        if block.type == "text":
-            result_blocks.append({"tipo": "texto", "conteudo": block.text})
+    for block in data.get("content", []):
+        btype = block.get("type")
+        if btype == "text":
+            result_blocks.append({"tipo": "texto", "conteudo": block.get("text","")})
 
-        elif block.type == "tool_use":
-            tool_name  = block.name
-            tool_input = block.input
+        elif btype == "tool_use":
+            tool_name  = block.get("name","")
+            tool_input = block.get("input", {})
             tool_calls_made.append({"nome": tool_name, "input": tool_input})
 
             try:
@@ -1775,5 +1783,5 @@ def chat_tools():
                                        "trace": tb.format_exc()})
 
     registrar_evento("mensagem", user)
-    return jsonify({"blocos": result_blocks, "stop_reason": response.stop_reason})
+    return jsonify({"blocos": result_blocks, "stop_reason": data.get("stop_reason","")})
 
