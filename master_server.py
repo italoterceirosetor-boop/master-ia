@@ -635,6 +635,7 @@ def login():
     token = secrets.token_hex(16)
     users[user]["token"] = token
     save_users(users)
+    registrar_evento("login", user)
     return jsonify({"token": token, "nome": u["nome"], "username": user})
 
 @app.route("/gerar", methods=["POST"])
@@ -662,11 +663,75 @@ def gerar():
         fname = f"{safe_name(titulo)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
         (DOCS_DIR / fname).write_bytes(data)
 
+        # Registra evento se autenticado
+        u = auth(request) or "anonimo"
+        registrar_evento("documento", u, tipo)
+
         return send_file(io.BytesIO(data), as_attachment=True,
                          download_name=f"{safe_name(titulo)}.{ext}", mimetype=mime)
     except Exception as e:
         import traceback
         return jsonify({"erro": str(e), "trace": traceback.format_exc()}), 500
+
+# ── CHATS ─────────────────────────────────────────────────────────────────────
+CHATS_DIR = DATA_DIR / "chats"
+CHATS_DIR.mkdir(exist_ok=True)
+
+def chats_file(username):
+    return CHATS_DIR / f"{username}.json"
+
+def load_chats(username):
+    f = chats_file(username)
+    try:
+        return json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
+    except Exception:
+        return []
+
+def save_chats(username, chats):
+    chats_file(username).write_text(json.dumps(chats, ensure_ascii=False), encoding="utf-8")
+
+@app.route("/chats", methods=["GET"])
+def get_chats():
+    user = auth(request)
+    if not user: return jsonify({"erro": "Não autenticado"}), 401
+    return jsonify(load_chats(user))
+
+@app.route("/chats", methods=["POST"])
+def post_chat():
+    user = auth(request)
+    if not user: return jsonify({"erro": "Não autenticado"}), 401
+    d = request.get_json()
+    chats = load_chats(user)
+    idx = next((i for i, c in enumerate(chats) if c.get("id") == d.get("id")), -1)
+    if idx >= 0:
+        chats[idx] = d
+    else:
+        chats.append(d)
+        # Conta nova mensagem do usuário
+        msgs = d.get("msgs", [])
+        n_user = sum(1 for m in msgs if m.get("role") == "user")
+        if n_user > 0:
+            registrar_evento("mensagem", user, d.get("id",""))
+    save_chats(user, chats)
+    return jsonify({"ok": True})
+
+@app.route("/chats/<cid>", methods=["GET"])
+def get_chat(cid):
+    user = auth(request)
+    if not user: return jsonify({"erro": "Não autenticado"}), 401
+    chats = load_chats(user)
+    chat = next((c for c in chats if c.get("id") == cid), None)
+    if not chat: return jsonify({"erro": "Chat não encontrado"}), 404
+    return jsonify(chat)
+
+@app.route("/chats/<cid>", methods=["DELETE"])
+def del_chat(cid):
+    user = auth(request)
+    if not user: return jsonify({"erro": "Não autenticado"}), 401
+    chats = [c for c in load_chats(user) if c.get("id") != cid]
+    save_chats(user, chats)
+    return jsonify({"ok": True})
+
 
 @app.route("/admin/usuarios", methods=["POST"])
 def criar_usuario():
@@ -699,3 +764,412 @@ if __name__ == "__main__":
     print("="*55)
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  MÓDULO DE LOGS / DASHBOARD
+# ══════════════════════════════════════════════════════════════════════════════
+import threading
+from collections import defaultdict
+
+_lock = threading.Lock()
+LOGS_FILE = Path(os.environ.get("DATA_DIR", "/tmp")) / "master_logs.json"
+
+def _load_logs():
+    try:
+        if LOGS_FILE.exists():
+            return json.loads(LOGS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {"events": []}
+
+def _save_logs(data):
+    try:
+        LOGS_FILE.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
+
+def registrar_evento(tipo: str, usuario: str, detalhe: str = ""):
+    """Registra um evento (mensagem, documento, login) no log."""
+    with _lock:
+        data = _load_logs()
+        data["events"].append({
+            "tipo": tipo,          # "mensagem" | "documento" | "login"
+            "usuario": usuario,
+            "detalhe": detalhe,
+            "ts": datetime.now().isoformat()
+        })
+        # Mantém só últimos 5000 eventos
+        if len(data["events"]) > 5000:
+            data["events"] = data["events"][-5000:]
+        _save_logs(data)
+
+@app.route("/dashboard/stats", methods=["GET"])
+def dashboard_stats():
+    user = auth(request)
+    if not user:
+        return jsonify({"erro": "Não autenticado"}), 401
+
+    with _lock:
+        data = _load_logs()
+
+    events = data.get("events", [])
+
+    # ── Totais gerais ──
+    total_msgs   = sum(1 for e in events if e["tipo"] == "mensagem")
+    total_docs   = sum(1 for e in events if e["tipo"] == "documento")
+    total_logins = sum(1 for e in events if e["tipo"] == "login")
+    usuarios_ativos = len({e["usuario"] for e in events})
+
+    # ── Uso por usuário (mensagens) ──
+    uso_usuario = defaultdict(int)
+    for e in events:
+        if e["tipo"] == "mensagem":
+            uso_usuario[e["usuario"]] += 1
+    uso_usuario = [{"nome": k, "total": v}
+                   for k, v in sorted(uso_usuario.items(), key=lambda x: -x[1])]
+
+    # ── Documentos por tipo ──
+    docs_tipo = defaultdict(int)
+    for e in events:
+        if e["tipo"] == "documento":
+            docs_tipo[e.get("detalhe", "pdf")] += 1
+    docs_tipo = [{"tipo": k.upper(), "total": v}
+                 for k, v in docs_tipo.items()]
+
+    # ── Atividade últimos 7 dias ──
+    from datetime import timedelta
+    hoje = datetime.now().date()
+    dias = {}
+    for i in range(6, -1, -1):
+        d = (hoje - timedelta(days=i)).isoformat()
+        dias[d] = {"mensagens": 0, "documentos": 0}
+    for e in events:
+        try:
+            d = e["ts"][:10]
+            if d in dias:
+                if e["tipo"] == "mensagem":
+                    dias[d]["mensagens"] += 1
+                elif e["tipo"] == "documento":
+                    dias[d]["documentos"] += 1
+        except Exception:
+            pass
+    atividade = [{"data": k[-5:], "mensagens": v["mensagens"], "documentos": v["documentos"]}
+                 for k, v in dias.items()]
+
+    # ── Top 5 chats mais longos ──
+    chats_count = defaultdict(int)
+    for e in events:
+        if e["tipo"] == "mensagem":
+            chats_count[e.get("detalhe", "")] += 1
+    # Não expõe conteúdo — só contagem anônima
+
+    # ── Últimos eventos (para o admin) ──
+    ultimos = []
+    for e in reversed(events[-30:]):
+        ultimos.append({
+            "tipo": e["tipo"],
+            "usuario": e["usuario"],
+            "detalhe": e.get("detalhe", ""),
+            "ts": e["ts"][11:16]  # HH:MM
+        })
+
+    return jsonify({
+        "totais": {
+            "mensagens": total_msgs,
+            "documentos": total_docs,
+            "logins": total_logins,
+            "usuarios_ativos": usuarios_ativos,
+        },
+        "uso_usuario": uso_usuario,
+        "docs_tipo": docs_tipo,
+        "atividade": atividade,
+        "ultimos": ultimos,
+        "usuario_logado": user,
+        "is_admin": user == "italo",
+    })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  MÓDULO ADMIN
+# ══════════════════════════════════════════════════════════════════════════════
+@app.route("/admin/listar", methods=["GET"])
+def admin_listar():
+    user = auth(request)
+    if user != "italo":
+        return jsonify({"erro": "Acesso negado"}), 403
+    users = load_users()
+    lista = []
+    for u, d in users.items():
+        lista.append({
+            "username": u,
+            "nome": d.get("nome", u),
+            "tem_token": bool(d.get("token")),
+        })
+    return jsonify(lista)
+
+@app.route("/admin/resetar_senha", methods=["POST"])
+def admin_resetar():
+    user = auth(request)
+    if user != "italo":
+        return jsonify({"erro": "Acesso negado"}), 403
+    d = request.get_json()
+    alvo = (d.get("username") or "").strip().lower()
+    nova  = (d.get("nova_senha") or "master123").strip()
+    users = load_users()
+    if alvo not in users:
+        return jsonify({"erro": "Usuário não encontrado"}), 404
+    users[alvo]["senha"] = hash_pw(nova)
+    save_users(users)
+    return jsonify({"ok": True})
+
+@app.route("/admin/remover", methods=["POST"])
+def admin_remover():
+    user = auth(request)
+    if user != "italo":
+        return jsonify({"erro": "Acesso negado"}), 403
+    d = request.get_json()
+    alvo = (d.get("username") or "").strip().lower()
+    if alvo == "italo":
+        return jsonify({"erro": "Não pode remover o admin"}), 400
+    users = load_users()
+    if alvo not in users:
+        return jsonify({"erro": "Usuário não encontrado"}), 404
+    del users[alvo]
+    save_users(users)
+    return jsonify({"ok": True})
+
+@app.route("/admin/adicionar", methods=["POST"])
+def admin_adicionar():
+    user = auth(request)
+    if user != "italo":
+        return jsonify({"erro": "Acesso negado"}), 403
+    d = request.get_json()
+    username = (d.get("username") or "").strip().lower()
+    nome     = (d.get("nome") or "").strip()
+    senha    = (d.get("senha") or "master123").strip()
+    if not username or not nome:
+        return jsonify({"erro": "username e nome obrigatórios"}), 400
+    users = load_users()
+    if username in users:
+        return jsonify({"erro": "Usuário já existe"}), 409
+    users[username] = {"senha": hash_pw(senha), "nome": nome, "token": ""}
+    save_users(users)
+    return jsonify({"ok": True})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  MÓDULO COMPARATIVO FISCONTECH x DOMÍNIO
+# ══════════════════════════════════════════════════════════════════════════════
+@app.route("/comparativo", methods=["POST"])
+def comparativo():
+    user = auth(request)
+    if not user:
+        return jsonify({"erro": "Não autenticado"}), 401
+
+    d       = request.get_json()
+    dados_a = d.get("dados_a") or ""  # CSV/texto do Fiscontech
+    dados_b = d.get("dados_b") or ""  # CSV/texto do Domínio
+    label_a = d.get("label_a") or "Fiscontech"
+    label_b = d.get("label_b") or "Domínio"
+
+    if not dados_a or not dados_b:
+        return jsonify({"erro": "Envie dados_a e dados_b"}), 400
+
+    # Gera Excel comparativo
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Comparativo"
+
+    az_hdr  = PatternFill("solid", fgColor="1a3a6e")
+    verde   = PatternFill("solid", fgColor="e6faf7")
+    amarelo = PatternFill("solid", fgColor="fff8e1")
+    vermelho= PatternFill("solid", fgColor="ffe5e5")
+    alt     = PatternFill("solid", fgColor="eef2ff")
+    white   = PatternFill("solid", fgColor="FFFFFF")
+
+    f_hdr   = Font(bold=True, color="FFFFFF", size=11)
+    f_tit   = Font(bold=True, color="1a3a6e", size=14)
+    f_sub   = Font(bold=True, color="2d5fa3", size=11)
+    f_body  = Font(size=10)
+    f_diff  = Font(bold=True, color="c0392b", size=10)
+    f_ok    = Font(color="1a7a5c", size=10)
+    brd = Border(
+        left=Side(style="thin", color="d0d8f0"),
+        right=Side(style="thin", color="d0d8f0"),
+        top=Side(style="thin", color="d0d8f0"),
+        bottom=Side(style="thin", color="d0d8f0"),
+    )
+
+    def parsecsv(txt):
+        """Parseia CSV simples ou texto tabulado."""
+        rows = []
+        for line in txt.strip().split("\n"):
+            if not line.strip():
+                continue
+            # tenta ; depois , depois \t
+            for sep in (";", ",", "\t"):
+                parts = line.split(sep)
+                if len(parts) >= 2:
+                    rows.append([p.strip() for p in parts])
+                    break
+            else:
+                rows.append([line.strip()])
+        return rows
+
+    rows_a = parsecsv(dados_a)
+    rows_b = parsecsv(dados_b)
+
+    # Título
+    ws.merge_cells("A1:H1")
+    c = ws["A1"]
+    c.value = f"Comparativo {label_a} × {label_b}"
+    c.font  = f_tit
+    c.fill  = PatternFill("solid", fgColor="f5f7ff")
+    c.alignment = Alignment(horizontal="center")
+    ws.row_dimensions[1].height = 24
+
+    ws.merge_cells("A2:H2")
+    c2 = ws["A2"]
+    c2.value = now_str()
+    c2.font  = Font(color="AAAAAA", size=8, italic=True)
+    c2.alignment = Alignment(horizontal="center")
+
+    row = 4
+
+    # ── Seção A ──────────────────────────────────────────────────────────────
+    ws.merge_cells(f"A{row}:H{row}")
+    ca = ws[f"A{row}"]
+    ca.value = f"▌ {label_a}"
+    ca.font  = f_sub
+    ca.fill  = PatternFill("solid", fgColor="dbeafe")
+    ca.alignment = Alignment(indent=1)
+    row += 1
+
+    for ri, r in enumerate(rows_a):
+        for ci, val in enumerate(r[:8], 1):
+            c = ws.cell(row=row, column=ci, value=val)
+            c.font  = Font(bold=(ri==0), color="FFFFFF" if ri==0 else "2c3347", size=10)
+            c.fill  = az_hdr if ri == 0 else (alt if ri%2==0 else white)
+            c.border = brd
+            c.alignment = Alignment(wrap_text=True)
+        row += 1
+    row += 1
+
+    # ── Seção B ──────────────────────────────────────────────────────────────
+    ws.merge_cells(f"A{row}:H{row}")
+    cb = ws[f"A{row}"]
+    cb.value = f"▌ {label_b}"
+    cb.font  = f_sub
+    cb.fill  = PatternFill("solid", fgColor="dcfce7")
+    cb.alignment = Alignment(indent=1)
+    row += 1
+
+    for ri, r in enumerate(rows_b):
+        for ci, val in enumerate(r[:8], 1):
+            c = ws.cell(row=row, column=ci, value=val)
+            c.font  = Font(bold=(ri==0), color="FFFFFF" if ri==0 else "2c3347", size=10)
+            c.fill  = PatternFill("solid", fgColor="166534") if ri==0 else (verde if ri%2==0 else white)
+            c.border = brd
+            c.alignment = Alignment(wrap_text=True)
+        row += 1
+    row += 1
+
+    # ── Diferenças numéricas automáticas ─────────────────────────────────────
+    def extrair_valores(rows):
+        """Extrai pares (chave, valor_float) da última coluna numérica."""
+        vals = {}
+        for r in rows[1:]:  # pula header
+            if len(r) >= 2:
+                chave = r[0]
+                for cell_val in reversed(r):
+                    v = cell_val.replace(".", "").replace(",", ".").replace("R$","").strip()
+                    try:
+                        vals[chave] = float(v)
+                        break
+                    except ValueError:
+                        pass
+        return vals
+
+    va = extrair_valores(rows_a)
+    vb = extrair_valores(rows_b)
+    todas_chaves = sorted(set(va) | set(vb))
+
+    if todas_chaves:
+        ws.merge_cells(f"A{row}:H{row}")
+        cd = ws[f"A{row}"]
+        cd.value = "▌ Diferenças"
+        cd.font  = Font(bold=True, color="c0392b", size=11)
+        cd.fill  = PatternFill("solid", fgColor="fee2e2")
+        cd.alignment = Alignment(indent=1)
+        row += 1
+
+        # Header diferenças
+        hdrs = ["Chave/Empresa", label_a, label_b, "Diferença", "Status"]
+        for ci, h in enumerate(hdrs, 1):
+            c = ws.cell(row=row, column=ci, value=h)
+            c.font = f_hdr; c.fill = az_hdr; c.border = brd
+            c.alignment = Alignment(horizontal="center")
+        row += 1
+
+        for ri, chave in enumerate(todas_chaves):
+            val_a = va.get(chave)
+            val_b = vb.get(chave)
+            diff  = None
+            status = ""
+            if val_a is not None and val_b is not None:
+                diff = val_b - val_a
+                status = "✅ OK" if abs(diff) < 0.02 else f"⚠ Dif"
+            elif val_a is None:
+                status = "❌ Só no " + label_b
+            else:
+                status = "❌ Só no " + label_a
+
+            bg = verde if status.startswith("✅") else (amarelo if "Dif" in status else vermelho)
+            row_data = [
+                chave,
+                f"R$ {val_a:,.2f}".replace(",","X").replace(".",",").replace("X",".") if val_a is not None else "—",
+                f"R$ {val_b:,.2f}".replace(",","X").replace(".",",").replace("X",".") if val_b is not None else "—",
+                f"R$ {diff:,.2f}".replace(",","X").replace(".",",").replace("X",".") if diff is not None else "—",
+                status,
+            ]
+            for ci, val in enumerate(row_data, 1):
+                c = ws.cell(row=row, column=ci, value=val)
+                c.font  = f_diff if "⚠" in str(status) or "❌" in str(status) else f_ok
+                c.fill  = bg if ri%2==0 else bg
+                c.border = brd
+                c.alignment = Alignment(horizontal="center" if ci > 1 else "left", wrap_text=True)
+            row += 1
+
+    # Largura das colunas
+    from openpyxl.cell.cell import MergedCell
+    for col in ws.columns:
+        ml = 10
+        col_letter = None
+        for c in col:
+            if isinstance(c, MergedCell): continue
+            if col_letter is None:
+                try: col_letter = c.column_letter
+                except: pass
+            try:
+                if c.value: ml = max(ml, len(str(c.value)))
+            except: pass
+        if col_letter:
+            ws.column_dimensions[col_letter].width = min(max(ml + 2, 12), 50)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    data_bytes = buf.read()
+
+    registrar_evento("documento", user, "comparativo")
+
+    fname = f"Comparativo_{safe_name(label_a)}_{safe_name(label_b)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    (DOCS_DIR / fname).write_bytes(data_bytes)
+
+    return send_file(
+        io.BytesIO(data_bytes),
+        as_attachment=True,
+        download_name=fname,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
