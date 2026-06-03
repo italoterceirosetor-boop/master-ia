@@ -1671,12 +1671,34 @@ def chat_tools():
     system = (
         "Você é o Master IA, assistente especializado em contabilidade, fiscal e tributário brasileiro. "
         "Responda sempre em português. "
-        "REGRA IMPORTANTE: Use as ferramentas (gráficos, Excel, Python) SOMENTE quando o usuário pedir EXPLICITAMENTE — "
-        "palavras como 'gráfico', 'planilha', 'excel', 'código', 'calcule', 'execute', 'rode'. "
-        "Se o usuário pedir 'PDF', 'documento', 'relatório' ou 'explique', responda em texto/markdown DIRETO, SEM usar ferramentas. "
-        "Para respostas em texto, seja completo, detalhado e bem estruturado com títulos e seções. "
-        "Após usar uma ferramenta, comente o resultado brevemente em português."
+        "NUNCA faça perguntas ao usuário. NUNCA peça mais detalhes. Sempre responda diretamente com o conteúdo completo. "
+        "Se o usuário pedir um documento, relatório, PDF ou explicação — responda com o conteúdo COMPLETO e DETALHADO em markdown imediatamente. "
+        "Use # para título, ## para seções, ### para subseções, listas e tabelas quando pertinente. "
+        "Use ferramentas (gráfico, Excel, Python) SOMENTE quando o usuário usar palavras como: gráfico, planilha, excel, código, calcule, execute, rode. "
+        "Para todo o resto, responda em texto/markdown direto, sem ferramentas."
     )
+
+    # Limpa histórico — mantém só mensagens text simples (user/assistant string)
+    # Evita erro 500 por tool_use sem tool_result no histórico
+    msgs_limpos = []
+    for m in messages:
+        role = m.get("role","")
+        content = m.get("content","")
+        if role not in ("user","assistant"):
+            continue
+        if isinstance(content, str) and content.strip():
+            # Remove vazamento de <tool_call> do texto
+            content = content.split("<tool_call>")[0].strip()
+            if content:
+                msgs_limpos.append({"role": role, "content": content})
+        elif isinstance(content, list):
+            # Extrai só os blocos de texto
+            texto = " ".join(b.get("text","") for b in content if b.get("type")=="text").strip()
+            if texto:
+                msgs_limpos.append({"role": role, "content": texto})
+
+    if not msgs_limpos:
+        return jsonify({"erro": "messages vazio"}), 400
 
     try:
         resp = _requests.post(
@@ -1692,7 +1714,7 @@ def chat_tools():
                 "max_tokens": 4096,
                 "system": system,
                 "tools": TOOLS,
-                "messages": messages,
+                "messages": msgs_limpos,
             },
             timeout=120
         )
@@ -1786,3 +1808,4 @@ def chat_tools():
 
     registrar_evento("mensagem", user)
     return jsonify({"blocos": result_blocks, "stop_reason": data.get("stop_reason","")})
+
