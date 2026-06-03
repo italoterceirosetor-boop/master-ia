@@ -597,31 +597,22 @@ def auth(req):
             return u
     return None
 
-def load_users():
-    if not (DATA_DIR/"users.json").exists(): return {}
-    return json.loads((DATA_DIR/"users.json").read_text(encoding="utf-8"))
-
-def save_users(u):
-    (DATA_DIR/"users.json").write_text(json.dumps(u, ensure_ascii=False, indent=2), encoding="utf-8")
-
 def hash_pw(pw): return hashlib.sha256(pw.encode()).hexdigest()
 
-def seed_users():
-    users = load_users()
-    defaults = {
-        "italo":   {"senha": hash_pw("master123"), "nome": "Ítalo"},
-        "willian": {"senha": hash_pw("master123"), "nome": "Willian"},
-        "augusto": {"senha": hash_pw("master123"), "nome": "Augusto"},
-        "trinid":  {"senha": hash_pw("master123"), "nome": "Trinid"},
-        "rafael":  {"senha": hash_pw("master123"), "nome": "Rafael"},
-        "diogo":   {"senha": hash_pw("master123"), "nome": "Diogo"},
-        "bia":     {"senha": hash_pw("master123"), "nome": "Bia"},
-    }
-    changed = False
-    for u, d in defaults.items():
-        if u not in users:
-            users[u] = d; changed = True
-    if changed: save_users(users)
+# Usuários fixos no código — sem arquivo JSON
+USERS = {
+    "italo":   {"senha": hash_pw("master123"), "nome": "Ítalo",   "token": ""},
+    "willian": {"senha": hash_pw("master123"), "nome": "Willian", "token": ""},
+    "augusto": {"senha": hash_pw("master123"), "nome": "Augusto", "token": ""},
+    "trinid":  {"senha": hash_pw("master123"), "nome": "Trinid",  "token": ""},
+    "rafael":  {"senha": hash_pw("master123"), "nome": "Rafael",  "token": ""},
+    "diogo":   {"senha": hash_pw("master123"), "nome": "Diogo",   "token": ""},
+    "bia":     {"senha": hash_pw("master123"), "nome": "Bia",     "token": ""},
+}
+
+def load_users(): return USERS
+def save_users(u): USERS.update(u)
+def seed_users(): pass
 
 @app.route("/", methods=["GET"])
 def index():
