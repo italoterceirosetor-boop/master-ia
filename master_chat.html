@@ -101,7 +101,46 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
 .hint{text-align:center;font-size:10px;color:var(--text2);margin-top:6px;max-width:800px;margin-left:auto;margin-right:auto;}
 @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
-/* Navegação de módulos */
+/* Blocos de ferramenta */
+.tool-block{margin:8px 0;border-radius:8px;overflow:hidden;}
+.tool-img{max-width:100%;border-radius:8px;display:block;cursor:zoom-in;transition:transform .2s;}
+.tool-img:hover{transform:scale(1.01);}
+.tool-img-wrap{position:relative;}
+.tool-img-legend{font-size:10px;color:var(--text2);margin-top:4px;text-align:center;}
+.tool-img-dl{position:absolute;top:6px;right:6px;background:rgba(15,17,23,.75);border:1px solid var(--border);color:var(--text2);padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Sora',sans-serif;backdrop-filter:blur(4px);transition:all .2s;}
+.tool-img-dl:hover{border-color:var(--accent);color:var(--accent);}
+.code-block{background:#0d1117;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#161b22;border-bottom:1px solid var(--border);}
+.code-lang{font-size:10px;color:var(--accent2);font-family:'JetBrains Mono',monospace;font-weight:600;}
+.code-copy{background:none;border:1px solid var(--border);color:var(--text2);padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s;}
+.code-copy:hover{border-color:var(--accent);color:var(--accent);}
+.code-body{padding:12px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#e6edf3;}
+.exec-result{border-top:1px solid var(--border);padding:8px 12px;background:#0a0e14;}
+.exec-label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.exec-out{font-family:'JetBrains Mono',monospace;font-size:11px;color:#00c2a8;white-space:pre-wrap;}
+.exec-err{font-family:'JetBrains Mono',monospace;font-size:11px;color:#ff6b6b;white-space:pre-wrap;}
+.excel-block{background:var(--surface2);border:1px solid rgba(0,194,168,.3);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;}
+.excel-icon{font-size:24px;flex-shrink:0;}
+.excel-info{flex:1;}
+.excel-nome{font-size:12px;font-weight:600;color:var(--accent2);}
+.excel-sub{font-size:10px;color:var(--text2);margin-top:2px;}
+.excel-dl{background:var(--accent2);border:none;color:#0f1117;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;flex-shrink:0;transition:opacity .2s;}
+.excel-dl:hover{opacity:.85;}
+/* Syntax highlight básico */
+.kw{color:#ff79c6;}.fn{color:#50fa7b;}.st{color:#f1fa8c;}.cm{color:#6272a4;font-style:italic;}.nm{color:#bd93f9;}.op{color:#ff79c6;}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:999;align-items:center;justify-content:center;cursor:zoom-out;}
+#lightbox.on{display:flex;}
+#lightbox img{max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+
+.sb-search{padding:6px 10px;border-bottom:1px solid var(--border);}
+.sb-search input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 9px 6px 28px;border-radius:6px;font-size:12px;font-family:'Sora',sans-serif;outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238892a4' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:8px center;}
+.sb-search input:focus{border-color:var(--accent);}
+.sb-search input::placeholder{color:var(--text2);}
+mark{background:rgba(61,126,255,.25);color:var(--accent);border-radius:2px;padding:0 1px;}
+/* Streaming cursor */
+.stream-cursor{display:inline-block;width:2px;height:14px;background:var(--accent);margin-left:2px;vertical-align:middle;animation:blink .7s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .nav-btn{flex:1;background:none;border:1px solid var(--border);color:var(--text2);padding:5px 4px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s;white-space:nowrap;}
 .nav-btn:hover{border-color:var(--accent);color:var(--accent);}
 .nav-btn.active{background:rgba(61,126,255,.15);border-color:var(--accent);color:var(--accent);}
@@ -200,6 +239,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
     <button class="nav-btn" id="nav-comp" onclick="mostrarModulo('comp',this)" title="Comparativo">⚖ Comp.</button>
     <button class="nav-btn" id="nav-admin" onclick="mostrarModulo('admin',this)" title="Admin" style="display:none">🔧 Admin</button>
   </div>
+  <div class="sb-search" id="sb-search-box">
+    <input type="search" id="sb-search" placeholder="Buscar conversas..." oninput="filtrarChats(this.value)">
+  </div>
   <div class="sb-sec" id="sb-label">Conversas</div>
   <div class="chat-list" id="cl"></div>
   <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
@@ -215,6 +257,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
     </button>
   </div>
 </div>
+<div id="lightbox" onclick="this.classList.remove('on')"><img id="lb-img" src=""></div>
 <div id="main">
   <!-- PAINEL DASHBOARD -->
   <div id="painel-dash">
@@ -695,21 +738,67 @@ async function delChat(e,id){
   if(cid===id) novoChat(); else loadChatList();
 }
 
-function renderChats(chats){
+// ── BUSCA DE CHATS ────────────────────────────────────────────────────────────
+let _todosChats = [];
+let _termoBusca = '';
+
+function filtrarChats(termo) {
+  _termoBusca = termo.trim().toLowerCase();
+  if (!_termoBusca) {
+    renderChats(_todosChats);
+    return;
+  }
+  const filtrados = _todosChats.filter(c => {
+    const noTitulo = (c.titulo||'').toLowerCase().includes(_termoBusca);
+    const noConteudo = (c.msgs||[]).some(m =>
+      (typeof m.content === 'string' ? m.content : '').toLowerCase().includes(_termoBusca)
+    );
+    return noTitulo || noConteudo;
+  });
+  renderChats(filtrados, _termoBusca);
+}
+
+function highlight(txt, termo) {
+  if (!termo) return esc(txt);
+  const re = new RegExp('(' + termo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+  return esc(txt).replace(re, '<mark>$1</mark>');
+}
+
+function renderChats(chats, termo=''){
+  _todosChats = chats || _todosChats;
   if (chats === null) { loadChatList(); return; }
   const list = document.getElementById('cl');
   if (!chats || chats.length===0){
-    list.innerHTML='<div style="padding:12px 10px;font-size:11px;color:var(--text2);text-align:center">Nenhuma conversa ainda</div>';
+    list.innerHTML=`<div style="padding:12px 10px;font-size:11px;color:var(--text2);text-align:center">${_termoBusca ? 'Nenhum resultado' : 'Nenhuma conversa ainda'}</div>`;
     return;
   }
-  const sorted = [...chats].sort((a,b)=>(b.updated||0)-(a.updated||0));
+  const sorted = termo ? chats : [...chats].sort((a,b)=>(b.updated||0)-(a.updated||0));
+
+  // Snippet de contexto para busca no conteúdo
+  function snippet(c) {
+    if (!termo) return '';
+    const msg = (c.msgs||[]).find(m =>
+      (typeof m.content === 'string' ? m.content : '').toLowerCase().includes(termo)
+    );
+    if (!msg || typeof msg.content !== 'string') return '';
+    const idx = msg.content.toLowerCase().indexOf(termo);
+    const start = Math.max(0, idx - 20);
+    const trecho = msg.content.slice(start, idx + termo.length + 30);
+    return `<div style="font-size:10px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${highlight(trecho, termo)}</div>`;
+  }
+
   list.innerHTML = sorted.map(c=>`
     <div class="ci ${c.id===cid?'on':''}" onclick="loadChat('${c.id}')">
-      <span class="ci-t">${esc(c.titulo)}</span>
+      <div style="flex:1;overflow:hidden">
+        <div class="ci-t">${highlight(c.titulo||'Sem título', termo)}</div>
+        ${snippet(c)}
+      </div>
       <span class="ci-d">${fd(c.updated||0)}</span>
       <button class="ci-x" onclick="delChat(event,'${c.id}')">✕</button>
     </div>`).join('');
 }
+
+
 
 // ── ARQUIVO ANEXADO ─────────────────────────────────────────────────────────
 let attachedFile = null;
@@ -783,8 +872,6 @@ async function send(){
   const text=inp.value.trim(); if(!text) return;
   if(!cfg.key){document.getElementById('cfg').classList.add('on');document.getElementById('nk').style.display='block';return;}
   if(!cid) cid='c_'+Date.now();
-  // Injeta instrução na mensagem para sobrescrever comportamento do gateway
-  const instrucao = '[IMPORTANTE: Responda em texto corrido com markdown. NÃO use código Python, bash ou ferramentas. NÃO execute scripts. Apenas escreva a resposta diretamente em português.] ';
 
   // Monta conteúdo com ou sem arquivo
   let apiContent;
@@ -793,53 +880,166 @@ async function send(){
     if (ext === 'pdf') {
       apiContent = [
         { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: attachedFileData } },
-        { type: 'text', text: instrucao + (text || 'Analise este documento.') }
+        { type: 'text', text: text || 'Analise este documento.' }
       ];
     } else if (ext === 'txt' || ext === 'csv') {
       try {
         const decoded = decodeURIComponent(escape(atob(attachedFileData)));
-        apiContent = instrucao + text + '\n\n--- Conteúdo: ' + attachedFile.name + ' ---\n' + decoded;
+        apiContent = text + '\n\n--- Conteúdo: ' + attachedFile.name + ' ---\n' + decoded;
       } catch(e) {
-        apiContent = instrucao + text + '\n\n[Arquivo: ' + attachedFile.name + ']';
+        apiContent = text + '\n\n[Arquivo: ' + attachedFile.name + ']';
       }
     } else {
-      apiContent = instrucao + text + '\n\n[Arquivo anexado: ' + attachedFile.name + ' — formato não suportado para leitura direta]';
+      apiContent = text + '\n\n[Arquivo: ' + attachedFile.name + ']';
     }
     clearFile();
   } else {
-    apiContent = instrucao + text;
+    apiContent = text;
   }
 
-  const msgParaApi = {role:'user', content: apiContent};
-  msgs.push({role:'user',content:text}); // salva sem instrução no histórico
-  addMsg('u',text,false);
+  msgs.push({role:'user', content: apiContent});
+  addMsg('u', text, false);
   inp.value=''; inp.style.height='auto';
   if(msgs.length===1){
     const t=text.length>48?text.substring(0,48)+'…':text;
     document.getElementById('ct').textContent=t;
   }
   busy=true; document.getElementById('sbtn').disabled=true; addTyping();
-  try{
-    const r=await fetch(`${APIURL}/v1/messages`,{
+
+  // ── Decide modo: tools (via servidor) ou streaming direto ──────────────────
+  const usarTools = !!(cfg.srv && session.token);
+
+  if (usarTools) {
+    await _sendTools(apiContent);
+  } else {
+    await _sendStreaming(apiContent);
+  }
+
+  busy=false; document.getElementById('sbtn').disabled=false;
+  document.getElementById('inp').focus();
+}
+
+async function _sendTools(apiContent) {
+  try {
+    const r = await fetch(cfg.srv + '/chat_tools', {
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:cfg.model,max_tokens:4096,messages:[...msgs.slice(0,-1), msgParaApi]})
+      headers:{'Content-Type':'application/json','X-Token':session.token},
+      body: JSON.stringify({
+        api_key:  cfg.key,
+        model:    cfg.model,
+        messages: msgs
+      })
     });
     document.getElementById('ty')?.remove();
-    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error?.message||'Erro '+r.status);}
-    const data=await r.json();
-    const reply=data.content?.[0]?.text||'(sem resposta)';
-    msgs.push({role:'assistant',content:reply});
-    addMsg('a',reply);
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.erro||'Erro '+r.status);}
+    const data = await r.json();
+    const blocos = data.blocos || [];
+
+    // Renderiza blocos
+    const msgsEl = document.getElementById('msgs');
+    document.getElementById('wlc')?.remove();
+    const d = document.createElement('div'); d.className='msg a';
+    const msgId = 'm_'+Date.now();
+    const htmlBlocos = renderBlocos(blocos, msgId);
+    const textoPlano = blocos.filter(b=>b.tipo==='texto').map(b=>b.conteudo).join('\n\n');
+
+    d.innerHTML = `<div class="av">✦</div><div class="mc" id="${msgId}">${htmlBlocos}
+      <div class="acts">
+        <button class="ba" onclick="copiarTexto(${JSON.stringify(textoPlano)},this)">📋 Copiar</button>
+        <button class="ba" onclick="gerarDoc('${msgId}','pdf',this)">📄 PDF</button>
+        <button class="ba" onclick="gerarDoc('${msgId}','word',this)">📝 Word</button>
+      </div>
+    </div>`;
+    msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight;
+
+    // Salva resposta textual no histórico
+    if (textoPlano) msgs.push({role:'assistant', content: textoPlano});
     saveChat();
-  }catch(e){
+
+  } catch(e) {
     document.getElementById('ty')?.remove();
     const d=document.createElement('div'); d.className='err'; d.textContent='⚠ '+e.message;
     document.getElementById('msgs').appendChild(d);
     msgs.pop();
   }
-  busy=false; document.getElementById('sbtn').disabled=false;
-  document.getElementById('inp').focus();
+}
+
+async function _sendStreaming(apiContent) {
+  const instrucao = '[IMPORTANTE: Responda em texto corrido com markdown. NÃO use código Python, bash ou ferramentas. NÃO execute scripts. Apenas escreva a resposta diretamente em português.] ';
+  const msgParaApi = {role:'user', content: instrucao + (typeof apiContent==='string' ? apiContent : JSON.stringify(apiContent))};
+
+  try{
+    const r=await fetch(`${APIURL}/v1/messages`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':cfg.key,
+        'anthropic-version':'2023-06-01',
+      },
+      body:JSON.stringify({
+        model:cfg.model,
+        max_tokens:4096,
+        stream:true,
+        messages:[...msgs.slice(0,-1), msgParaApi]
+      })
+    });
+
+    document.getElementById('ty')?.remove();
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error?.message||'Erro '+r.status);}
+
+    document.getElementById('wlc')?.remove();
+    const msgsEl=document.getElementById('msgs');
+    const d=document.createElement('div'); d.className='msg a'; d.id='msg-stream';
+    const msgId='m_'+Date.now()+'_stream';
+    d.innerHTML=`<div class="av">✦</div><div class="mc" id="${msgId}"><span id="stream-text"></span><span class="stream-cursor"></span></div>`;
+    msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight;
+
+    const reader=r.body.getReader();
+    const decoder=new TextDecoder();
+    let fullText='', buffer='';
+
+    while(true){
+      const {done,value}=await reader.read();
+      if(done) break;
+      buffer+=decoder.decode(value,{stream:true});
+      const lines=buffer.split('\n');
+      buffer=lines.pop();
+      for(const line of lines){
+        if(!line.startsWith('data: ')) continue;
+        const raw=line.slice(6).trim();
+        if(raw==='[DONE]') break;
+        try{
+          const ev=JSON.parse(raw);
+          if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){
+            fullText+=ev.delta.text;
+            document.getElementById('stream-text').innerHTML=fmt(fullText);
+            msgsEl.scrollTop=msgsEl.scrollHeight;
+          }
+        }catch(_){}
+      }
+    }
+
+    const bubble=document.getElementById(msgId);
+    if(bubble){
+      bubble.querySelector('.stream-cursor')?.remove();
+      bubble.innerHTML=fmt(fullText)+`<div class="acts">
+        <button class="ba" onclick="copiar('${msgId}',this)">📋 Copiar</button>
+        <button class="ba" onclick="gerarDoc('${msgId}','pdf',this)">📄 PDF</button>
+        <button class="ba" onclick="gerarDoc('${msgId}','word',this)">📝 Word</button>
+        <button class="ba" onclick="gerarDoc('${msgId}','excel',this)">📊 Excel</button>
+      </div>`;
+    }
+    document.getElementById('msg-stream')?.removeAttribute('id');
+    msgs.push({role:'assistant',content:fullText});
+    saveChat();
+
+  }catch(e){
+    document.getElementById('ty')?.remove();
+    document.getElementById('msg-stream')?.remove();
+    const d=document.createElement('div'); d.className='err'; d.textContent='⚠ '+e.message;
+    document.getElementById('msgs').appendChild(d);
+    msgs.pop();
+  }
 }
 
 // ── NAVEGAÇÃO DE MÓDULOS ─────────────────────────────────────────────────────
@@ -859,12 +1059,14 @@ function mostrarModulo(mod, btn) {
   });
   document.getElementById('cl').style.display = 'none';
   document.getElementById('sb-label').style.display = 'none';
+  document.getElementById('sb-search-box').style.display = 'none';
 
   // Esconde/mostra área de chat principal
   const main = document.getElementById('main');
   if (mod === 'chat') {
     document.getElementById('cl').style.display = '';
     document.getElementById('sb-label').style.display = '';
+    document.getElementById('sb-search-box').style.display = '';
     // mostra área de chat
     document.querySelector('#main > header').style.display = '';
     document.getElementById('cfg').style.display = '';
@@ -1065,6 +1267,114 @@ async function adminAdicionar() {
   } else { alert('Erro: ' + (d.erro||'desconhecido')); }
 }
 
+// ── RENDERIZAÇÃO DE BLOCOS DE FERRAMENTA ─────────────────────────────────────
+
+function syntaxHL(code) {
+  // Highlight básico Python/JS
+  return code
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(#.*$)/gm,             '<span class="cm">$1</span>')
+    .replace(/\b(def|class|import|from|return|if|else|elif|for|while|in|not|and|or|True|False|None|try|except|with|as|pass|break|continue|lambda|yield|raise|del|global|nonlocal|async|await)\b/g,'<span class="kw">$1</span>')
+    .replace(/\b([A-Z][A-Za-z0-9_]*)\b/g,'<span class="nm">$1</span>')
+    .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g,'<span class="st">$1</span>')
+    .replace(/\b(\d+\.?\d*)\b/g,'<span class="nm">$1</span>');
+}
+
+function renderBlocos(blocos, msgId) {
+  let html = '';
+  for (const b of blocos) {
+    if (b.tipo === 'texto') {
+      html += `<div class="tool-block">${fmt(b.conteudo)}</div>`;
+
+    } else if (b.tipo === 'imagem') {
+      html += `
+        <div class="tool-block tool-img-wrap">
+          <img class="tool-img" src="data:image/png;base64,${b.b64}"
+               alt="${esc(b.legenda||'Gráfico')}"
+               onclick="abrirLightbox(this.src)">
+          <button class="tool-img-dl" onclick="dlImagem('${b.b64}','${esc(b.legenda||'grafico')}')">⬇ Baixar</button>
+          ${b.legenda ? `<div class="tool-img-legend">${esc(b.legenda)}</div>` : ''}
+        </div>`;
+
+    } else if (b.tipo === 'codigo_resultado') {
+      const hlCode = syntaxHL(b.codigo);
+      html += `
+        <div class="tool-block">
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">Python</span>
+              <button class="code-copy" onclick="copiarTexto(${JSON.stringify(b.codigo)},this)">📋 Copiar</button>
+            </div>
+            <div class="code-body">${hlCode}</div>
+            ${b.stdout || b.stderr || b.imagem_b64 ? `
+            <div class="exec-result">
+              ${b.stdout ? `<div class="exec-label">Saída</div><div class="exec-out">${esc(b.stdout)}</div>` : ''}
+              ${b.stderr && !b.imagem_b64 ? `<div class="exec-label" style="color:var(--danger)">Erro</div><div class="exec-err">${esc(b.stderr)}</div>` : ''}
+              ${b.imagem_b64 ? `<div class="tool-img-wrap" style="margin-top:8px">
+                <img class="tool-img" src="data:image/png;base64,${b.imagem_b64}" onclick="abrirLightbox(this.src)">
+                <button class="tool-img-dl" onclick="dlImagem('${b.imagem_b64}','resultado')">⬇ Baixar</button>
+              </div>` : ''}
+            </div>` : ''}
+          </div>
+        </div>`;
+
+    } else if (b.tipo === 'excel') {
+      html += `
+        <div class="tool-block">
+          <div class="excel-block">
+            <div class="excel-icon">📊</div>
+            <div class="excel-info">
+              <div class="excel-nome">${esc(b.legenda||b.nome)}</div>
+              <div class="excel-sub">Planilha Excel com formatação Master</div>
+            </div>
+            <button class="excel-dl" onclick="dlExcel('${b.b64}','${esc(b.nome)}')">⬇ Baixar</button>
+          </div>
+        </div>`;
+
+    } else if (b.tipo === 'erro_ferramenta') {
+      html += `
+        <div class="tool-block">
+          <div style="background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.25);border-radius:7px;padding:9px 12px;font-size:12px;color:#ff8fa3">
+            ⚠ Erro em <strong>${esc(b.ferramenta)}</strong>: ${esc(b.mensagem)}
+          </div>
+        </div>`;
+    }
+  }
+  return html;
+}
+
+function abrirLightbox(src) {
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lightbox').classList.add('on');
+}
+
+function dlImagem(b64, nome) {
+  const a = document.createElement('a');
+  a.href     = 'data:image/png;base64,' + b64;
+  a.download = (nome||'grafico').replace(/\s+/g,'_') + '.png';
+  a.click();
+}
+
+function dlExcel(b64, nome) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  const blob = new Blob([arr],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = nome; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function copiarTexto(texto, btn) {
+  navigator.clipboard.writeText(texto).then(()=>{
+    const orig = btn.textContent;
+    btn.textContent='✅ Copiado!';
+    setTimeout(()=>btn.textContent=orig, 2000);
+  });
+}
+
+// ── SEND COM TOOLS (substitui send anterior) ─────────────────────────────────
 // INIT
 (function(){
   document.getElementById('ck').value=cfg.key;
