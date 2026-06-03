@@ -1173,3 +1173,603 @@ def comparativo():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  FERRAMENTAS / TOOL USE
+# ══════════════════════════════════════════════════════════════════════════════
+import base64, subprocess, sys, textwrap, traceback as tb
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import numpy as np
+
+# Paleta Master
+MASTER_COLORS = ["#3d7eff","#00c2a8","#ff6b6b","#ffd93d","#a78bfa","#fb923c","#34d399","#60a5fa"]
+
+def _apply_master_style(fig, ax_list=None):
+    fig.patch.set_facecolor("#181c26")
+    for ax in (ax_list or fig.get_axes()):
+        ax.set_facecolor("#1e2330")
+        ax.tick_params(colors="#8892a4", labelsize=9)
+        ax.xaxis.label.set_color("#8892a4")
+        ax.yaxis.label.set_color("#8892a4")
+        ax.title.set_color("#e8eaf0")
+        for spine in ax.spines.values():
+            spine.set_edgecolor("#2a3045")
+        ax.grid(color="#2a3045", linewidth=0.5, alpha=0.7)
+
+
+def _fig_to_b64(fig):
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=130, bbox_inches="tight",
+                facecolor=fig.get_facecolor())
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode()
+
+
+# ── Gráfico de barras ──────────────────────────────────────────────────────────
+def tool_grafico_barras(labels, valores, titulo="", xlabel="", ylabel="", horizontal=False):
+    fig, ax = plt.subplots(figsize=(7, 4))
+    _apply_master_style(fig, [ax])
+    cores = MASTER_COLORS[:len(labels)]
+    y = np.arange(len(labels))
+    if horizontal:
+        bars = ax.barh(y, valores, color=cores, edgecolor="#2a3045", linewidth=0.5)
+        ax.set_yticks(y); ax.set_yticklabels(labels)
+        for bar, val in zip(bars, valores):
+            ax.text(bar.get_width() + max(valores)*0.01, bar.get_y()+bar.get_height()/2,
+                    f"{val:,.2f}".replace(",","X").replace(".",",").replace("X","."),
+                    va="center", ha="left", color="#e8eaf0", fontsize=8)
+    else:
+        bars = ax.bar(y, valores, color=cores, edgecolor="#2a3045", linewidth=0.5, width=0.65)
+        ax.set_xticks(y); ax.set_xticklabels(labels, rotation=20, ha="right")
+        for bar, val in zip(bars, valores):
+            ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+max(valores)*0.01,
+                    f"{val:,.2f}".replace(",","X").replace(".",",").replace("X","."),
+                    ha="center", va="bottom", color="#e8eaf0", fontsize=8)
+    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", pad=10)
+    if xlabel: ax.set_xlabel(xlabel)
+    if ylabel: ax.set_ylabel(ylabel)
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x,_: f"{x:,.0f}".replace(",",".")))
+    fig.tight_layout()
+    return _fig_to_b64(fig)
+
+
+# ── Gráfico de linhas ──────────────────────────────────────────────────────────
+def tool_grafico_linhas(series, titulo="", xlabel="", ylabel=""):
+    """series: [{"nome": str, "dados": [float,...], "labels": [str,...]}]"""
+    fig, ax = plt.subplots(figsize=(7, 4))
+    _apply_master_style(fig, [ax])
+    for i, s in enumerate(series):
+        cor = MASTER_COLORS[i % len(MASTER_COLORS)]
+        xs = range(len(s["dados"]))
+        ax.plot(xs, s["dados"], color=cor, linewidth=2, marker="o", markersize=5, label=s["nome"])
+        ax.fill_between(xs, s["dados"], alpha=0.07, color=cor)
+    if series and series[0].get("labels"):
+        ax.set_xticks(range(len(series[0]["labels"])))
+        ax.set_xticklabels(series[0]["labels"], rotation=20, ha="right")
+    if len(series) > 1:
+        leg = ax.legend(fontsize=8, facecolor="#1e2330", edgecolor="#2a3045", labelcolor="#e8eaf0")
+    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", pad=10)
+    if xlabel: ax.set_xlabel(xlabel)
+    if ylabel: ax.set_ylabel(ylabel)
+    fig.tight_layout()
+    return _fig_to_b64(fig)
+
+
+# ── Gráfico de pizza ───────────────────────────────────────────────────────────
+def tool_grafico_pizza(labels, valores, titulo=""):
+    fig, ax = plt.subplots(figsize=(6, 5))
+    _apply_master_style(fig, [ax])
+    wedges, texts, autotexts = ax.pie(
+        valores, labels=None,
+        colors=MASTER_COLORS[:len(labels)],
+        autopct="%1.1f%%", startangle=90,
+        wedgeprops=dict(edgecolor="#181c26", linewidth=1.5),
+        pctdistance=0.82
+    )
+    for at in autotexts:
+        at.set_color("#e8eaf0"); at.set_fontsize(8)
+    patches = [mpatches.Patch(color=MASTER_COLORS[i % len(MASTER_COLORS)], label=l)
+               for i, l in enumerate(labels)]
+    ax.legend(handles=patches, loc="lower center", bbox_to_anchor=(0.5, -0.12),
+              ncol=3, fontsize=8, facecolor="#1e2330",
+              edgecolor="#2a3045", labelcolor="#e8eaf0", framealpha=0.9)
+    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", color="#e8eaf0", pad=10)
+    fig.tight_layout()
+    return _fig_to_b64(fig)
+
+
+# ── Gráfico de dispersão ───────────────────────────────────────────────────────
+def tool_grafico_dispersao(series, titulo="", xlabel="", ylabel=""):
+    """series: [{"nome": str, "x": [float], "y": [float]}]"""
+    fig, ax = plt.subplots(figsize=(7, 4))
+    _apply_master_style(fig, [ax])
+    for i, s in enumerate(series):
+        cor = MASTER_COLORS[i % len(MASTER_COLORS)]
+        ax.scatter(s["x"], s["y"], color=cor, label=s["nome"], alpha=0.85, s=50, edgecolors="#181c26", linewidth=0.5)
+    if len(series) > 1:
+        ax.legend(fontsize=8, facecolor="#1e2330", edgecolor="#2a3045", labelcolor="#e8eaf0")
+    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", pad=10)
+    if xlabel: ax.set_xlabel(xlabel)
+    if ylabel: ax.set_ylabel(ylabel)
+    fig.tight_layout()
+    return _fig_to_b64(fig)
+
+
+# ── Execução de Python segura ──────────────────────────────────────────────────
+EXEC_TIMEOUT = 10  # segundos
+
+def tool_executar_python(codigo: str):
+    """
+    Executa código Python em subprocesso isolado.
+    Retorna {"stdout": str, "stderr": str, "erro": bool, "imagem_b64": str|None}
+    """
+    # Injeta captura de plt.show() → base64
+    wrapper = textwrap.dedent(f"""
+import sys, io, base64, json
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as _plt_orig
+_fig_b64 = None
+
+def _capture_show():
+    global _fig_b64
+    buf = io.BytesIO()
+    _plt_orig.savefig(buf, format="png", dpi=130, bbox_inches="tight",
+                      facecolor=_plt_orig.gcf().get_facecolor())
+    _plt_orig.close()
+    buf.seek(0)
+    _fig_b64 = base64.b64encode(buf.read()).decode()
+
+import matplotlib.pyplot as plt
+plt.show = _capture_show
+
+# ─── CÓDIGO DO USUÁRIO ───
+{codigo}
+# ─────────────────────────
+
+# Se gerou figura mas não chamou show, captura
+if _plt_orig.get_fignums() and _fig_b64 is None:
+    _capture_show()
+
+print("__FIG__:" + (_fig_b64 or ""), file=sys.stderr)
+""")
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", wrapper],
+            capture_output=True, text=True, timeout=EXEC_TIMEOUT
+        )
+        # Extrai imagem do stderr
+        imagem_b64 = None
+        stderr_lines = []
+        for line in proc.stderr.splitlines():
+            if line.startswith("__FIG__:"):
+                val = line[8:].strip()
+                if val:
+                    imagem_b64 = val
+            else:
+                stderr_lines.append(line)
+
+        return {
+            "stdout": proc.stdout.strip(),
+            "stderr": "\n".join(stderr_lines).strip(),
+            "erro": proc.returncode != 0,
+            "imagem_b64": imagem_b64
+        }
+    except subprocess.TimeoutExpired:
+        return {"stdout": "", "stderr": f"Timeout: execução excedeu {EXEC_TIMEOUT}s", "erro": True, "imagem_b64": None}
+    except Exception as e:
+        return {"stdout": "", "stderr": str(e), "erro": True, "imagem_b64": None}
+
+
+# ── Excel avançado com gráfico ─────────────────────────────────────────────────
+def tool_excel_avancado(titulo, colunas, linhas, grafico_tipo=None, grafico_series=None):
+    """
+    colunas: [str]
+    linhas:  [[valor, ...]]
+    grafico_tipo: "barras" | "linhas" | "pizza" | None
+    grafico_series: índices das colunas numéricas para o gráfico
+    """
+    from openpyxl.chart import BarChart, LineChart, PieChart, Reference, Series as XLSeries
+    from openpyxl.chart.series import DataPoint
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = titulo[:28] if titulo else "Dados"
+
+    az    = PatternFill("solid", fgColor="1a3a6e")
+    az2   = PatternFill("solid", fgColor="2d5fa3")
+    verde = PatternFill("solid", fgColor="e6faf7")
+    alt   = PatternFill("solid", fgColor="f5f7ff")
+    white = PatternFill("solid", fgColor="FFFFFF")
+    brd   = Border(
+        left=Side(style="thin",   color="d0d8f0"),
+        right=Side(style="thin",  color="d0d8f0"),
+        top=Side(style="thin",    color="d0d8f0"),
+        bottom=Side(style="thin", color="d0d8f0"),
+    )
+
+    ncols = len(colunas)
+
+    # ── Título ──
+    ws.merge_cells(f"A1:{chr(64+ncols)}1")
+    c = ws["A1"]
+    c.value = titulo
+    c.font  = Font(bold=True, color="FFFFFF", size=13)
+    c.fill  = az
+    c.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 26
+
+    ws.merge_cells(f"A2:{chr(64+ncols)}2")
+    c2 = ws["A2"]
+    c2.value = now_str()
+    c2.font  = Font(color="AAAAAA", size=8, italic=True)
+    c2.alignment = Alignment(horizontal="center")
+    ws.row_dimensions[2].height = 14
+
+    # ── Header ──
+    for j, col in enumerate(colunas, 1):
+        c = ws.cell(row=3, column=j, value=col)
+        c.font  = Font(bold=True, color="FFFFFF", size=10)
+        c.fill  = az2
+        c.border = brd
+        c.alignment = Alignment(horizontal="center", wrap_text=True, vertical="center")
+    ws.row_dimensions[3].height = 20
+
+    # ── Dados ──
+    for ri, row in enumerate(linhas):
+        bg = alt if ri % 2 == 0 else white
+        for j, val in enumerate(row[:ncols], 1):
+            # Tenta converter número
+            cell_val = val
+            try:
+                if isinstance(val, str):
+                    v = val.replace(".", "").replace(",", ".")
+                    cell_val = float(v) if "." in val or val.lstrip("-").isdigit() else val
+            except Exception:
+                pass
+            c = ws.cell(row=4+ri, column=j, value=cell_val)
+            c.font   = Font(size=10)
+            c.fill   = bg
+            c.border = brd
+            is_num   = isinstance(cell_val, (int, float))
+            c.alignment = Alignment(
+                horizontal="right" if is_num else "left",
+                wrap_text=True, vertical="center"
+            )
+            if is_num:
+                c.number_format = '#,##0.00'
+        ws.row_dimensions[4+ri].height = 18
+
+    # ── Totais automáticos para colunas numéricas ──
+    tot_row = 4 + len(linhas)
+    ws.merge_cells(f"A{tot_row}:{chr(64+min(2,ncols))}{tot_row}")
+    c = ws[f"A{tot_row}"]
+    c.value = "TOTAL"
+    c.font  = Font(bold=True, color="FFFFFF", size=10)
+    c.fill  = az
+    c.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[tot_row].height = 18
+
+    for j in range(3, ncols+1):
+        # Verifica se coluna é numérica
+        try:
+            vals = [ws.cell(row=4+ri, column=j).value for ri in range(len(linhas))]
+            if all(isinstance(v, (int, float)) for v in vals if v is not None):
+                tc = ws.cell(row=tot_row, column=j)
+                tc.value = f"=SUM({chr(64+j)}4:{chr(64+j)}{tot_row-1})"
+                tc.font  = Font(bold=True, color="FFFFFF", size=10)
+                tc.fill  = az
+                tc.border = brd
+                tc.number_format = '#,##0.00'
+                tc.alignment = Alignment(horizontal="right", vertical="center")
+        except Exception:
+            pass
+
+    # ── Largura das colunas ──
+    from openpyxl.cell.cell import MergedCell
+    for col in ws.columns:
+        ml = 10
+        col_letter = None
+        for c in col:
+            if isinstance(c, MergedCell): continue
+            if col_letter is None:
+                try: col_letter = c.column_letter
+                except: pass
+            try:
+                if c.value: ml = max(ml, len(str(c.value)))
+            except: pass
+        if col_letter:
+            ws.column_dimensions[col_letter].width = min(max(ml + 2, 12), 40)
+
+    # ── Gráfico embutido ──
+    if grafico_tipo and len(linhas) > 0:
+        try:
+            data_row_start = 3  # header na linha 3
+            data_row_end   = 3 + len(linhas)
+            series_cols    = grafico_series or [j for j in range(2, ncols+1)]
+
+            if grafico_tipo == "pizza":
+                chart = PieChart()
+                chart.title = titulo
+                chart.style = 10
+                data   = Reference(ws, min_col=series_cols[0], min_row=data_row_start, max_row=data_row_end)
+                labels = Reference(ws, min_col=1, min_row=4, max_row=data_row_end)
+                chart.add_data(data, titles_from_data=True)
+                chart.set_categories(labels)
+            elif grafico_tipo == "linhas":
+                chart = LineChart()
+                chart.title = titulo
+                chart.style = 10
+                chart.grouping = "standard"
+                for sc in series_cols:
+                    data = Reference(ws, min_col=sc, min_row=data_row_start, max_row=data_row_end)
+                    chart.add_data(data, titles_from_data=True)
+                cats = Reference(ws, min_col=1, min_row=4, max_row=data_row_end)
+                chart.set_categories(cats)
+            else:  # barras (padrão)
+                chart = BarChart()
+                chart.type = "col"
+                chart.title = titulo
+                chart.style = 10
+                chart.grouping = "clustered"
+                for sc in series_cols:
+                    data = Reference(ws, min_col=sc, min_row=data_row_start, max_row=data_row_end)
+                    chart.add_data(data, titles_from_data=True)
+                cats = Reference(ws, min_col=1, min_row=4, max_row=data_row_end)
+                chart.set_categories(cats)
+
+            chart.width  = 16
+            chart.height = 10
+            ws.add_chart(chart, f"A{tot_row + 2}")
+        except Exception:
+            pass  # gráfico opcional — não quebra o arquivo
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf.read()
+
+
+# ── Definição das ferramentas para a API Anthropic ────────────────────────────
+TOOLS = [
+    {
+        "name": "gerar_grafico_barras",
+        "description": "Gera um gráfico de barras bonito. Use quando o usuário pedir gráfico de barras, comparativo de valores, ranking.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "labels":     {"type":"array","items":{"type":"string"},"description":"Nomes das barras"},
+                "valores":    {"type":"array","items":{"type":"number"},"description":"Valores numéricos"},
+                "titulo":     {"type":"string","description":"Título do gráfico"},
+                "xlabel":     {"type":"string","description":"Rótulo eixo X"},
+                "ylabel":     {"type":"string","description":"Rótulo eixo Y"},
+                "horizontal": {"type":"boolean","description":"True para barras horizontais"}
+            },
+            "required": ["labels","valores"]
+        }
+    },
+    {
+        "name": "gerar_grafico_linhas",
+        "description": "Gera gráfico de linhas. Use para séries temporais, evolução ao longo do tempo, tendências.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "series": {
+                    "type":"array",
+                    "description":"Lista de séries",
+                    "items": {
+                        "type":"object",
+                        "properties": {
+                            "nome":   {"type":"string"},
+                            "dados":  {"type":"array","items":{"type":"number"}},
+                            "labels": {"type":"array","items":{"type":"string"}}
+                        },
+                        "required":["nome","dados"]
+                    }
+                },
+                "titulo":  {"type":"string"},
+                "xlabel":  {"type":"string"},
+                "ylabel":  {"type":"string"}
+            },
+            "required": ["series"]
+        }
+    },
+    {
+        "name": "gerar_grafico_pizza",
+        "description": "Gera gráfico de pizza/rosca. Use para mostrar proporções, participação percentual, distribuição.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "labels":  {"type":"array","items":{"type":"string"},"description":"Categorias"},
+                "valores": {"type":"array","items":{"type":"number"},"description":"Valores"},
+                "titulo":  {"type":"string"}
+            },
+            "required": ["labels","valores"]
+        }
+    },
+    {
+        "name": "gerar_grafico_dispersao",
+        "description": "Gera gráfico de dispersão (scatter plot). Use para correlação entre dois valores numéricos.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "series": {
+                    "type":"array",
+                    "items": {
+                        "type":"object",
+                        "properties": {
+                            "nome": {"type":"string"},
+                            "x": {"type":"array","items":{"type":"number"}},
+                            "y": {"type":"array","items":{"type":"number"}}
+                        },
+                        "required":["nome","x","y"]
+                    }
+                },
+                "titulo": {"type":"string"},
+                "xlabel": {"type":"string"},
+                "ylabel": {"type":"string"}
+            },
+            "required": ["series"]
+        }
+    },
+    {
+        "name": "executar_python",
+        "description": "Executa código Python e retorna o resultado. Use quando o usuário pedir para rodar, calcular, processar dados com Python. Pode usar pandas, numpy, matplotlib.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "codigo": {"type":"string","description":"Código Python completo para executar"}
+            },
+            "required": ["codigo"]
+        }
+    },
+    {
+        "name": "gerar_excel_avancado",
+        "description": "Gera planilha Excel profissional com formatação Master e gráfico embutido opcional. Use para tabelas de dados, relatórios, comparativos.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "titulo":         {"type":"string","description":"Título da planilha"},
+                "colunas":        {"type":"array","items":{"type":"string"},"description":"Nomes das colunas"},
+                "linhas":         {"type":"array","items":{"type":"array"},"description":"Linhas de dados"},
+                "grafico_tipo":   {"type":"string","enum":["barras","linhas","pizza"],"description":"Tipo de gráfico embutido (opcional)"},
+                "grafico_series": {"type":"array","items":{"type":"integer"},"description":"Índices (1-based) das colunas numéricas para o gráfico"}
+            },
+            "required": ["titulo","colunas","linhas"]
+        }
+    }
+]
+
+
+# ── Rota principal: chat com ferramentas ──────────────────────────────────────
+import anthropic as _anthropic
+
+@app.route("/chat_tools", methods=["POST"])
+def chat_tools():
+    user = auth(request)
+    if not user:
+        return jsonify({"erro": "Não autenticado"}), 401
+
+    d        = request.get_json()
+    messages = d.get("messages") or []
+    api_key  = d.get("api_key") or ""
+    model    = d.get("model") or "claude-opus-4-7"
+
+    if not api_key:
+        return jsonify({"erro": "api_key obrigatória"}), 400
+    if not messages:
+        return jsonify({"erro": "messages vazio"}), 400
+
+    system = (
+        "Você é o Master IA, assistente especializado em contabilidade, fiscal e tributário brasileiro. "
+        "Responda sempre em português. "
+        "Quando o usuário pedir gráficos, tabelas, planilhas ou código Python, USE as ferramentas disponíveis — "
+        "não apenas descreva, EXECUTE. "
+        "Para dados fiscais/contábeis, prefira gráficos de barras ou linhas. "
+        "Ao gerar Excel, inclua gráfico quando fizer sentido. "
+        "Para código Python solicitado pelo usuário, execute e mostre o resultado. "
+        "Após usar uma ferramenta, comente o resultado brevemente em português."
+    )
+
+    client = _anthropic.Anthropic(api_key=api_key)
+
+    try:
+        response = client.messages.create(
+            model=model,
+            max_tokens=4096,
+            system=system,
+            tools=TOOLS,
+            messages=messages
+        )
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+    # Processa blocos de resposta
+    result_blocks = []
+    tool_calls_made = []
+
+    for block in response.content:
+        if block.type == "text":
+            result_blocks.append({"tipo": "texto", "conteudo": block.text})
+
+        elif block.type == "tool_use":
+            tool_name  = block.name
+            tool_input = block.input
+            tool_calls_made.append({"nome": tool_name, "input": tool_input})
+
+            try:
+                if tool_name == "gerar_grafico_barras":
+                    img = tool_grafico_barras(
+                        tool_input["labels"], tool_input["valores"],
+                        tool_input.get("titulo",""), tool_input.get("xlabel",""),
+                        tool_input.get("ylabel",""), tool_input.get("horizontal", False)
+                    )
+                    result_blocks.append({"tipo": "imagem", "b64": img,
+                                          "legenda": tool_input.get("titulo","Gráfico")})
+
+                elif tool_name == "gerar_grafico_linhas":
+                    img = tool_grafico_linhas(
+                        tool_input["series"],
+                        tool_input.get("titulo",""), tool_input.get("xlabel",""),
+                        tool_input.get("ylabel","")
+                    )
+                    result_blocks.append({"tipo": "imagem", "b64": img,
+                                          "legenda": tool_input.get("titulo","Gráfico de Linhas")})
+
+                elif tool_name == "gerar_grafico_pizza":
+                    img = tool_grafico_pizza(
+                        tool_input["labels"], tool_input["valores"],
+                        tool_input.get("titulo","")
+                    )
+                    result_blocks.append({"tipo": "imagem", "b64": img,
+                                          "legenda": tool_input.get("titulo","Gráfico de Pizza")})
+
+                elif tool_name == "gerar_grafico_dispersao":
+                    img = tool_grafico_dispersao(
+                        tool_input["series"],
+                        tool_input.get("titulo",""), tool_input.get("xlabel",""),
+                        tool_input.get("ylabel","")
+                    )
+                    result_blocks.append({"tipo": "imagem", "b64": img,
+                                          "legenda": tool_input.get("titulo","Dispersão")})
+
+                elif tool_name == "executar_python":
+                    res = tool_executar_python(tool_input["codigo"])
+                    result_blocks.append({
+                        "tipo": "codigo_resultado",
+                        "codigo": tool_input["codigo"],
+                        "stdout": res["stdout"],
+                        "stderr": res["stderr"],
+                        "erro":   res["erro"],
+                        "imagem_b64": res.get("imagem_b64")
+                    })
+
+                elif tool_name == "gerar_excel_avancado":
+                    xls_bytes = tool_excel_avancado(
+                        tool_input["titulo"],
+                        tool_input["colunas"],
+                        tool_input["linhas"],
+                        tool_input.get("grafico_tipo"),
+                        tool_input.get("grafico_series")
+                    )
+                    xls_b64 = base64.b64encode(xls_bytes).decode()
+                    fname   = safe_name(tool_input["titulo"]) + ".xlsx"
+                    result_blocks.append({"tipo": "excel", "b64": xls_b64,
+                                          "nome": fname,
+                                          "legenda": tool_input["titulo"]})
+                    registrar_evento("documento", user, "excel_avancado")
+
+            except Exception as e:
+                result_blocks.append({"tipo": "erro_ferramenta",
+                                       "ferramenta": tool_name,
+                                       "mensagem": str(e),
+                                       "trace": tb.format_exc()})
+
+    registrar_evento("mensagem", user)
+    return jsonify({"blocos": result_blocks, "stop_reason": response.stop_reason})
+
