@@ -472,7 +472,32 @@ async function send(){
   if(!cid) cid='c_'+Date.now();
   // Injeta instrução na mensagem para sobrescrever comportamento do gateway
   const instrucao = '[IMPORTANTE: Responda em texto corrido com markdown. NÃO use código Python, bash ou ferramentas. NÃO execute scripts. Apenas escreva a resposta diretamente em português.] ';
-  const msgParaApi = {role:'user', content: instrucao + text};
+
+  // Monta conteúdo com ou sem arquivo
+  let apiContent;
+  if (attachedFile && attachedFileData) {
+    const ext = attachedFile.name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') {
+      apiContent = [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: attachedFileData } },
+        { type: 'text', text: instrucao + (text || 'Analise este documento.') }
+      ];
+    } else if (ext === 'txt' || ext === 'csv') {
+      try {
+        const decoded = decodeURIComponent(escape(atob(attachedFileData)));
+        apiContent = instrucao + text + '\n\n--- Conteúdo: ' + attachedFile.name + ' ---\n' + decoded;
+      } catch(e) {
+        apiContent = instrucao + text + '\n\n[Arquivo: ' + attachedFile.name + ']';
+      }
+    } else {
+      apiContent = instrucao + text + '\n\n[Arquivo anexado: ' + attachedFile.name + ' — formato não suportado para leitura direta]';
+    }
+    clearFile();
+  } else {
+    apiContent = instrucao + text;
+  }
+
+  const msgParaApi = {role:'user', content: apiContent};
   msgs.push({role:'user',content:text}); // salva sem instrução no histórico
   addMsg('u',text,false);
   inp.value=''; inp.style.height='auto';
