@@ -523,7 +523,37 @@ async function reformatar(texto, tipo){
 async function gerarDoc(msgId, tipo, btn){
   const el=document.getElementById(msgId); const cl=el.cloneNode(true);
   cl.querySelector('.acts')?.remove();
-  const original=cl.innerText||cl.textContent;
+
+  // Extrai conteúdo limpo — trata blocos de ferramenta separadamente
+  let partes = [];
+  cl.querySelectorAll('.tool-block').forEach(bloco => {
+    // Bloco de código Python
+    const codeBody = bloco.querySelector('.code-body');
+    if (codeBody) {
+      partes.push('```python\n' + codeBody.innerText + '\n```');
+      // Saída da execução
+      const out = bloco.querySelector('.exec-out');
+      if (out) partes.push('**Saída:**\n' + out.innerText);
+      const err = bloco.querySelector('.exec-err');
+      if (err) partes.push('**Erro:**\n' + err.innerText);
+      return;
+    }
+    // Bloco de imagem — pula (não tem como colocar no PDF assim)
+    if (bloco.querySelector('.tool-img')) {
+      partes.push('[Gráfico gerado — veja no chat]');
+      return;
+    }
+    // Bloco Excel — pula
+    if (bloco.querySelector('.excel-block')) {
+      partes.push('[Planilha Excel gerada — baixe pelo botão no chat]');
+      return;
+    }
+    // Texto normal
+    partes.push(bloco.innerText);
+  });
+
+  // Se não tem tool-blocks, pega o texto todo (resposta de streaming normal)
+  const original = partes.length > 0 ? partes.join('\n\n') : (cl.innerText||cl.textContent);
   const labels={pdf:'📄 PDF',word:'📝 Word',excel:'📊 Excel'};
 
   btn.textContent='⏳ Formatando...'; btn.classList.add('ld'); btn.disabled=true;
