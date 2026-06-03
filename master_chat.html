@@ -1,1469 +1,2094 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Master IA</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<style>
-:root{--bg:#0f1117;--surface:#181c26;--surface2:#1e2330;--border:#2a3045;--accent:#3d7eff;--accent2:#00c2a8;--text:#e8eaf0;--text2:#8892a4;--user:#1e3a6e;--ai:#1a1e2a;--danger:#ff4d6d;--ok:#00c2a8;}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden;}
-#sidebar{width:260px;min-width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .2s;}
-#sidebar.off{width:0;min-width:0;overflow:hidden;}
-.sb-head{padding:14px 16px;border-bottom:1px solid var(--border);}
-.logo{display:flex;align-items:center;gap:8px;}
-.logo-ic{width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;}
-.logo-tx{font-size:13px;font-weight:600;}
-.logo-sub{font-size:10px;color:var(--text2);}
-.btn-new{width:100%;margin-top:10px;padding:9px;background:var(--accent);border:none;color:#fff;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Sora',sans-serif;}
-.btn-new:hover{background:#5590ff;}
-.sb-sec{padding:10px 16px 4px;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;}
-.chat-list{flex:1;overflow-y:auto;padding:4px 8px;}
-.chat-list::-webkit-scrollbar{width:3px;}
-.chat-list::-webkit-scrollbar-thumb{background:var(--border);}
-.ci{padding:9px 10px;border-radius:7px;cursor:pointer;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;margin-bottom:2px;transition:all .15s;}
-.ci:hover{background:var(--surface2);color:var(--text);}
-.ci.on{background:rgba(61,126,255,.12);color:var(--accent);}
-.ci-t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ci-d{font-size:10px;color:var(--text2);flex-shrink:0;}
-.ci-x{background:none;border:none;color:transparent;cursor:pointer;font-size:12px;padding:0 2px;transition:color .2s;}
-.ci:hover .ci-x{color:var(--danger);}
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);}
-.hl{display:flex;align-items:center;gap:10px;}
-.btn-sb{background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;}
-.btn-sb:hover{color:var(--accent);}
-.htitle{font-size:14px;font-weight:500;color:var(--text2);}
-.hr{display:flex;align-items:center;gap:10px;}
-.badge{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent2);background:rgba(0,194,168,.1);border:1px solid rgba(0,194,168,.2);padding:3px 8px;border-radius:4px;}
-.btn-cfg{background:none;border:1px solid var(--border);color:var(--text2);padding:5px 11px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Sora',sans-serif;}
-.btn-cfg:hover{border-color:var(--accent);color:var(--accent);}
-#cfg{display:none;background:var(--surface2);border-bottom:1px solid var(--border);padding:12px 20px;}
-#cfg.on{display:block;}
-.cfg-row{display:flex;gap:10px;align-items:flex-end;}
-.cg{display:flex;flex-direction:column;gap:4px;}
-.cg label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
-.cg input,.cg select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;}
-.cg input:focus,.cg select:focus{border-color:var(--accent);}
-.btn-sv{background:var(--accent2);border:none;color:#0f1117;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;white-space:nowrap;}
-.cfg-hint{font-size:10px;color:var(--text2);margin-top:6px;}
-.nokey{background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.2);color:#ff8fa3;padding:8px 16px;font-size:12px;text-align:center;display:none;}
-.nokey button{background:none;border:none;color:var(--accent);cursor:pointer;font-family:'Sora',sans-serif;font-size:12px;text-decoration:underline;}
-#msgs{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth;}
-#msgs::-webkit-scrollbar{width:4px;}
-#msgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;padding:40px;gap:14px;}
-.w-ic{width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;}
-.welcome h2{font-size:20px;font-weight:600;}
-.welcome p{font-size:13px;color:var(--text2);max-width:380px;line-height:1.6;}
-.suggs{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:6px;max-width:540px;}
-.sugg{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:7px 13px;border-radius:18px;font-size:11px;cursor:pointer;transition:all .2s;font-family:'Sora',sans-serif;}
-.sugg:hover{border-color:var(--accent);color:var(--accent);}
-.msg{display:flex;gap:10px;max-width:800px;width:100%;align-self:center;animation:up .3s ease;}
-.msg.u{flex-direction:row-reverse;align-self:flex-end;}
-.av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px;}
-.msg.u .av{background:var(--user);border:1px solid rgba(61,126,255,.3);}
-.msg.a .av{background:linear-gradient(135deg,var(--accent),var(--accent2));}
-.mc{background:var(--ai);border:1px solid var(--border);border-radius:11px;padding:13px 15px;font-size:13.5px;line-height:1.75;max-width:calc(100% - 40px);}
-.msg.u .mc{background:var(--user);border-color:rgba(61,126,255,.2);}
-.mc p{margin-bottom:9px;}.mc p:last-child{margin-bottom:0;}
-.mc strong{color:#fff;font-weight:600;}
-.mc ul,.mc ol{padding-left:20px;margin:6px 0;}
-.mc li{margin-bottom:3px;}
-.mc code{font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.06);padding:2px 5px;border-radius:3px;font-size:12px;color:var(--accent2);}
-.mc pre{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:7px;padding:10px;overflow-x:auto;margin:8px 0;}
-.mc pre code{background:none;padding:0;font-size:12px;color:var(--text);}
-.mc table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12px;}
-.mc th{background:rgba(61,126,255,.2);color:var(--accent);padding:6px 10px;text-align:left;font-weight:600;border:1px solid var(--border);}
-.mc td{padding:5px 10px;border:1px solid var(--border);}
-.mc tr:nth-child(even) td{background:rgba(255,255,255,.02);}
-.acts{display:flex;gap:5px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;}
-.ba{background:none;border:1px solid var(--border);color:var(--text2);padding:3px 9px;border-radius:5px;font-size:11px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s;}
-.ba:hover{border-color:var(--accent);color:var(--accent);}
-.ba.ok{border-color:var(--ok);color:var(--ok);}
-.ba.ld{opacity:.6;cursor:wait;}
-.typing{display:flex;align-items:center;gap:5px;padding:4px 0;}
-.typing span{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:bounce 1.2s infinite;}
-.typing span:nth-child(2){animation-delay:.2s;background:var(--accent2);}
-.typing span:nth-child(3){animation-delay:.4s;}
-.err{background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);color:#ff8fa3;padding:11px 15px;border-radius:9px;font-size:13px;max-width:800px;align-self:center;width:100%;}
-.iarea{padding:14px 20px 18px;background:var(--surface);border-top:1px solid var(--border);}
-.iw{max-width:800px;margin:0 auto;display:flex;gap:8px;align-items:flex-end;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:9px 10px;transition:border-color .2s;}
-.iw:focus-within{border-color:var(--accent);}
-#inp{flex:1;background:none;border:none;color:var(--text);font-size:13.5px;font-family:'Sora',sans-serif;outline:none;resize:none;max-height:110px;line-height:1.5;min-height:21px;}
-#inp::placeholder{color:var(--text2);}
-#sbtn{width:34px;height:34px;background:var(--accent);border:none;border-radius:7px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
-#sbtn:hover{background:#5590ff;transform:scale(1.05);}
-#sbtn:disabled{background:var(--border);cursor:not-allowed;transform:none;}
-#sbtn svg{width:15px;height:15px;}
-.hint{text-align:center;font-size:10px;color:var(--text2);margin-top:6px;max-width:800px;margin-left:auto;margin-right:auto;}
-@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
-/* Blocos de ferramenta */
-.tool-block{margin:8px 0;border-radius:8px;overflow:hidden;}
-.tool-img{max-width:100%;border-radius:8px;display:block;cursor:zoom-in;transition:transform .2s;}
-.tool-img:hover{transform:scale(1.01);}
-.tool-img-wrap{position:relative;}
-.tool-img-legend{font-size:10px;color:var(--text2);margin-top:4px;text-align:center;}
-.tool-img-dl{position:absolute;top:6px;right:6px;background:rgba(15,17,23,.75);border:1px solid var(--border);color:var(--text2);padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Sora',sans-serif;backdrop-filter:blur(4px);transition:all .2s;}
-.tool-img-dl:hover{border-color:var(--accent);color:var(--accent);}
-.code-block{background:#0d1117;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-.code-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#161b22;border-bottom:1px solid var(--border);}
-.code-lang{font-size:10px;color:var(--accent2);font-family:'JetBrains Mono',monospace;font-weight:600;}
-.code-copy{background:none;border:1px solid var(--border);color:var(--text2);padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s;}
-.code-copy:hover{border-color:var(--accent);color:var(--accent);}
-.code-body{padding:12px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#e6edf3;}
-.exec-result{border-top:1px solid var(--border);padding:8px 12px;background:#0a0e14;}
-.exec-label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
-.exec-out{font-family:'JetBrains Mono',monospace;font-size:11px;color:#00c2a8;white-space:pre-wrap;}
-.exec-err{font-family:'JetBrains Mono',monospace;font-size:11px;color:#ff6b6b;white-space:pre-wrap;}
-.excel-block{background:var(--surface2);border:1px solid rgba(0,194,168,.3);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;}
-.excel-icon{font-size:24px;flex-shrink:0;}
-.excel-info{flex:1;}
-.excel-nome{font-size:12px;font-weight:600;color:var(--accent2);}
-.excel-sub{font-size:10px;color:var(--text2);margin-top:2px;}
-.excel-dl{background:var(--accent2);border:none;color:#0f1117;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;flex-shrink:0;transition:opacity .2s;}
-.excel-dl:hover{opacity:.85;}
-/* Syntax highlight básico */
-.kw{color:#ff79c6;}.fn{color:#50fa7b;}.st{color:#f1fa8c;}.cm{color:#6272a4;font-style:italic;}.nm{color:#bd93f9;}.op{color:#ff79c6;}
-/* Lightbox */
-#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:999;align-items:center;justify-content:center;cursor:zoom-out;}
-#lightbox.on{display:flex;}
-#lightbox img{max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+"""
+Master IA — Servidor
+Porta 5000. Uso: python master_server.py
+"""
 
-.sb-search{padding:6px 10px;border-bottom:1px solid var(--border);}
-.sb-search input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 9px 6px 28px;border-radius:6px;font-size:12px;font-family:'Sora',sans-serif;outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238892a4' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:8px center;}
-.sb-search input:focus{border-color:var(--accent);}
-.sb-search input::placeholder{color:var(--text2);}
-mark{background:rgba(61,126,255,.25);color:var(--accent);border-radius:2px;padding:0 1px;}
-/* Streaming cursor */
-.stream-cursor{display:inline-block;width:2px;height:14px;background:var(--accent);margin-left:2px;vertical-align:middle;animation:blink .7s infinite;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-.nav-btn{flex:1;background:none;border:1px solid var(--border);color:var(--text2);padding:5px 4px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s;white-space:nowrap;}
-.nav-btn:hover{border-color:var(--accent);color:var(--accent);}
-.nav-btn.active{background:rgba(61,126,255,.15);border-color:var(--accent);color:var(--accent);}
-/* Dashboard */
-#painel-dash{display:none;flex:1;overflow-y:auto;padding:12px 10px;flex-direction:column;gap:10px;}
-#painel-dash.on{display:flex;}
-.dash-card{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:11px 13px;}
-.dash-kpi{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:2px;}
-.kpi{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 11px;text-align:center;}
-.kpi-n{font-size:22px;font-weight:700;color:var(--accent);}
-.kpi-l{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
-.bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
-.bar-lbl{font-size:10px;color:var(--text2);width:56px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.bar-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
-.bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s ease;}
-.bar-val{font-size:9px;color:var(--text2);width:22px;text-align:right;flex-shrink:0;}
-.chart-line{display:flex;align-items:flex-end;gap:3px;height:50px;margin:6px 0;}
-.chart-col{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;}
-.chart-bar{width:100%;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px;transition:height .4s ease;}
-.chart-bar.doc{background:var(--accent2);}
-.chart-lbl{font-size:8px;color:var(--text2);}
-.dash-tit{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px;}
-.log-item{font-size:10px;color:var(--text2);padding:3px 0;border-bottom:1px solid var(--border);display:flex;gap:6px;}
-.log-tipo{color:var(--accent2);font-weight:600;min-width:60px;}
-.log-usr{color:var(--text);font-weight:500;}
-.log-ts{color:var(--text2);margin-left:auto;}
-/* Comparativo */
-#painel-comp{display:none;flex:1;overflow-y:auto;padding:14px 12px;flex-direction:column;gap:10px;}
-#painel-comp.on{display:flex;}
-.comp-area{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;}
-.comp-area label{font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;}
-.comp-area textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:6px;font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;resize:vertical;min-height:80px;}
-.comp-area textarea:focus{border-color:var(--accent);}
-.comp-inp{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 9px;border-radius:5px;font-size:11px;font-family:'Sora',sans-serif;outline:none;width:100%;}
-.comp-inp:focus{border-color:var(--accent);}
-.btn-comp{width:100%;background:var(--accent2);border:none;color:#0f1117;padding:9px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s;}
-.btn-comp:hover{opacity:.9;}
-.btn-comp:disabled{opacity:.5;cursor:wait;}
-/* Admin */
-#painel-admin{display:none;flex:1;overflow-y:auto;padding:14px 12px;flex-direction:column;gap:10px;}
-#painel-admin.on{display:flex;}
-.admin-user{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
-.admin-nome{font-size:12px;font-weight:600;}
-.admin-user span{font-size:10px;color:var(--text2);}
-.admin-acts{display:flex;gap:4px;}
-.btn-admin{background:none;border:1px solid var(--border);color:var(--text2);padding:3px 7px;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s;}
-.btn-admin:hover{border-color:var(--accent);color:var(--accent);}
-.btn-admin.danger:hover{border-color:var(--danger);color:var(--danger);}
-.admin-form{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;}
-.admin-form input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 9px;border-radius:5px;font-size:12px;font-family:'Sora',sans-serif;outline:none;}
-.admin-form input:focus{border-color:var(--accent);}
+import os, io, json, re, hashlib, secrets
+from datetime import datetime
+from pathlib import Path
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
 
-</style>
-</head>
-<body>
-<!-- LOGIN -->
-<div id="login-screen" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:320px;display:flex;flex-direction:column;gap:18px">
-    <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
-      <div style="width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px">📊</div>
-      <div style="font-size:20px;font-weight:600">Master IA</div>
-      <div style="font-size:12px;color:var(--text2)">Faça login para continuar</div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:4px">
-      <label style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Usuário</label>
-      <input id="li-user" type="text" placeholder="seu usuário"
-        style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;font-family:Sora,sans-serif;outline:none"
-        onkeydown="if(event.key==='Enter')document.getElementById('li-pass').focus()">
-    </div>
-    <div style="display:flex;flex-direction:column;gap:4px">
-      <label style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Senha</label>
-      <input id="li-pass" type="password" placeholder="••••••••"
-        style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;font-family:Sora,sans-serif;outline:none"
-        onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
-    <div id="li-err" style="font-size:12px;color:var(--danger);text-align:center;display:none">Usuário ou senha inválidos</div>
-    <button onclick="doLogin()"
-      style="background:var(--accent);border:none;color:white;padding:11px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:Sora,sans-serif">
-      Entrar
-    </button>
-    <div style="font-size:10px;color:var(--text2);text-align:center">
-      Servidor: <span id="li-srv" style="color:var(--accent2)">não configurado</span>
-    </div>
-  </div>
-</div>
+from docx import Document
+from docx.shared import Pt, RGBColor, Cm
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
 
-<div id="sidebar">
-  <div class="sb-head">
-    <div class="logo"><div class="logo-ic">📊</div><div><div class="logo-tx">Master IA</div><div class="logo-sub">Assistente Inteligente</div></div></div>
-    <button class="btn-new" onclick="novoChat()">＋ Novo chat</button>
-  </div>
-  <!-- Navegação de módulos -->
-  <div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;gap:4px">
-    <button class="nav-btn active" id="nav-chat" onclick="mostrarModulo('chat',this)" title="Chat">💬 Chat</button>
-    <button class="nav-btn" id="nav-dash" onclick="mostrarModulo('dash',this)" title="Dashboard">📈 Stats</button>
-    <button class="nav-btn" id="nav-comp" onclick="mostrarModulo('comp',this)" title="Comparativo">⚖ Comp.</button>
-    <button class="nav-btn" id="nav-admin" onclick="mostrarModulo('admin',this)" title="Admin" style="display:none">🔧 Admin</button>
-  </div>
-  <div class="sb-search" id="sb-search-box">
-    <input type="search" id="sb-search" placeholder="Buscar conversas..." oninput="filtrarChats(this.value)">
-  </div>
-  <div class="sb-sec" id="sb-label">Conversas</div>
-  <div class="chat-list" id="cl"></div>
-  <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-    <div style="font-size:12px">
-      <div style="font-weight:600;color:var(--text)" id="user-display">—</div>
-      <div style="color:var(--text2);font-size:10px">conta pessoal</div>
-    </div>
-    <button onclick="doLogout()"
-      style="background:none;border:1px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-family:Sora,sans-serif"
-      onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'"
-      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">
-      Sair
-    </button>
-  </div>
-</div>
-<div id="lightbox" onclick="this.classList.remove('on')"><img id="lb-img" src=""></div>
-<div id="main">
-  <!-- PAINEL DASHBOARD -->
-  <div id="painel-dash">
-    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">📈 Dashboard de Uso</div>
-    <div class="dash-kpi" id="dash-kpis">
-      <div class="kpi"><div class="kpi-n" id="kpi-msgs">—</div><div class="kpi-l">Mensagens</div></div>
-      <div class="kpi"><div class="kpi-n" id="kpi-docs">—</div><div class="kpi-l">Documentos</div></div>
-      <div class="kpi"><div class="kpi-n" id="kpi-users">—</div><div class="kpi-l">Usuários ativos</div></div>
-      <div class="kpi"><div class="kpi-n" id="kpi-logins">—</div><div class="kpi-l">Logins</div></div>
-    </div>
-    <div class="dash-card">
-      <div class="dash-tit">Mensagens por usuário</div>
-      <div id="dash-usuarios"></div>
-    </div>
-    <div class="dash-card">
-      <div class="dash-tit">Atividade — últimos 7 dias</div>
-      <div style="display:flex;gap:4px;font-size:9px;color:var(--text2);margin-bottom:4px">
-        <span style="color:var(--accent)">■</span> Mensagens &nbsp;
-        <span style="color:var(--accent2)">■</span> Documentos
-      </div>
-      <div class="chart-line" id="dash-chart"></div>
-    </div>
-    <div class="dash-card" id="dash-docs-card">
-      <div class="dash-tit">Tipos de documento gerados</div>
-      <div id="dash-docs"></div>
-    </div>
-    <div class="dash-card" id="dash-log-card">
-      <div class="dash-tit">Últimas ações</div>
-      <div id="dash-log"></div>
-    </div>
-    <button onclick="carregarDashboard()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:6px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'Sora',sans-serif;width:100%;margin-top:4px">🔄 Atualizar</button>
-  </div>
+app = Flask(__name__)
+CORS(app)
 
-  <!-- PAINEL COMPARATIVO -->
-  <div id="painel-comp">
-    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">⚖ Comparativo Fiscal</div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Cole os dados exportados de cada sistema. Gera Excel com diferenças destacadas.</div>
-    <div style="display:flex;gap:6px;margin-bottom:6px">
-      <div style="flex:1;display:flex;flex-direction:column;gap:3px">
-        <label style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Nome sistema A</label>
-        <input class="comp-inp" id="comp-label-a" value="Fiscontech">
-      </div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:3px">
-        <label style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Nome sistema B</label>
-        <input class="comp-inp" id="comp-label-b" value="Domínio">
-      </div>
-    </div>
-    <div class="comp-area">
-      <label>Dados do Sistema A (CSV, TSV ou texto tabulado)</label>
-      <textarea id="comp-dados-a" placeholder="Cole aqui os dados do Fiscontech...&#10;Empresa;Valor&#10;001 - NOME;1500,00"></textarea>
-    </div>
-    <div class="comp-area">
-      <label>Dados do Sistema B</label>
-      <textarea id="comp-dados-b" placeholder="Cole aqui os dados do Domínio...&#10;Empresa;Valor&#10;001 - NOME;1499,00"></textarea>
-    </div>
-    <button class="btn-comp" id="btn-comp" onclick="gerarComparativo()">⚖ Gerar Comparativo Excel</button>
-    <div id="comp-status" style="font-size:11px;color:var(--accent2);text-align:center;display:none;margin-top:4px"></div>
-  </div>
+# Na nuvem usa /tmp, localmente usa pasta master_data
+DATA_DIR = Path(os.environ.get("DATA_DIR", str(Path(__file__).parent / "master_data")))
+DATA_DIR.mkdir(exist_ok=True, parents=True)
+DOCS_DIR = DATA_DIR / "documentos"
+DOCS_DIR.mkdir(exist_ok=True)
 
-  <!-- PAINEL ADMIN -->
-  <div id="painel-admin">
-    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">🔧 Administração</div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:8px">Gerencie os usuários do sistema.</div>
-    <div id="admin-lista"></div>
-    <div class="admin-form" style="margin-top:6px">
-      <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Adicionar usuário</div>
-      <input id="adm-user" placeholder="username (sem espaços)" style="text-transform:lowercase">
-      <input id="adm-nome" placeholder="Nome completo">
-      <input id="adm-senha" placeholder="Senha (padrão: master123)">
-      <button onclick="adminAdicionar()" style="background:var(--accent);border:none;color:#fff;padding:7px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif">＋ Adicionar</button>
-    </div>
-  </div>
-  <header>
-    <div class="hl">
-      <button class="btn-sb" onclick="document.getElementById('sidebar').classList.toggle('off')">☰</button>
-      <div class="htitle" id="ct">Nova conversa</div>
-    </div>
-    <div class="hr">
-      <span class="badge" id="mb">claude-opus-4-7</span>
-      <button class="btn-cfg" onclick="document.getElementById('cfg').classList.toggle('on')">⚙ Configurar</button>
-    </div>
-  </header>
-  <div id="cfg">
-    <div class="cfg-row">
-      <div class="cg" style="flex:1"><label>Chave de API</label><input type="password" id="ck" placeholder="Cole sua chave aqui..."></div>
-      <div class="cg"><label>Servidor (Word/Excel)</label><input type="text" id="cs" placeholder="https://seu-app.railway.app"></div>
-      <div class="cg"><label>Modelo</label><select id="cm">
-  <optgroup label="Claude 4 (mais recentes)">
-    <option value="claude-opus-4-8">Opus 4.8 — mais poderoso</option>
-    <option value="claude-opus-4-7" selected>Opus 4.7 — recomendado</option>
-    <option value="claude-sonnet-4-6">Sonnet 4.6 — rápido e inteligente</option>
-    <option value="claude-haiku-4-5-20251001">Haiku 4.5 — mais rápido</option>
-  </optgroup>
-  <optgroup label="Claude 3 (anteriores)">
-    <option value="claude-3-5-sonnet-20241022">Sonnet 3.5</option>
-    <option value="claude-3-5-haiku-20241022">Haiku 3.5</option>
-    <option value="claude-3-opus-20240229">Opus 3</option>
-  </optgroup>
-</select></div>
-      <button class="btn-sv" onclick="salvarCfg()">Salvar</button>
-    </div>
-    <div class="cfg-hint">Servidor: URL do Railway (ex: https://master-ia.railway.app) ou IP local (http://172.16.1.240:5000)</div>
-  </div>
-  <div class="nokey" id="nk">⚠ Chave de API não configurada. <button onclick="document.getElementById('cfg').classList.add('on')">Configurar agora</button></div>
-  <div id="msgs">
-    <div class="welcome" id="wlc">
-      <div class="w-ic">📊</div>
-      <h2>Olá! Como posso ajudar?</h2>
-      <p>Pergunte qualquer coisa. Posso gerar documentos Word, Excel e PDF com o conteúdo das respostas.</p>
-      <div class="suggs">
-        <button class="sugg" onclick="sg('Qual o prazo do SPED Fiscal competência maio 2026?')">📅 Prazo SPED Fiscal</button>
-        <button class="sugg" onclick="sg('Explique substituição tributária de forma simples')">📖 O que é ST?</button>
-        <button class="sugg" onclick="sg('Obrigações acessórias do Simples Nacional')">📋 Simples Nacional</button>
-        <button class="sugg" onclick="sg('Como funciona o DIFAL no Lucro Presumido?')">🧾 DIFAL</button>
-        <button class="sugg" onclick="sg('Diferença entre NF-e, NFC-e e CT-e')">📄 Tipos de NF</button>
-        <button class="sugg" onclick="sg('EFD-Reinf: o que é e quando é obrigatória?')">⚖ EFD-Reinf</button>
-      </div>
-    </div>
-  </div>
-  <div class="iarea">
-    <div id="file-preview" style="display:none;max-width:800px;margin:0 auto 6px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--accent2);display:none;align-items:center;justify-content:space-between;gap:8px">
-      <span id="file-name">📄 arquivo.pdf</span>
-      <button onclick="clearFile()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px">✕</button>
-    </div>
-    <div class="iw" id="drop-zone"
-      ondragover="event.preventDefault();this.style.borderColor='var(--accent2)'"
-      ondragleave="this.style.borderColor=''"
-      ondrop="onDrop(event)">
-      <input type="file" id="file-input" accept=".pdf,.xlsx,.xls,.csv,.txt,.docx" style="display:none" onchange="onFileSelected(event)">
-      <button onclick="document.getElementById('file-input').click()" title="Anexar arquivo"
-        style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:0 4px;transition:color .2s;flex-shrink:0"
-        onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text2)'">📎</button>
-      <textarea id="inp" placeholder="Digite sua mensagem..." rows="1" onkeydown="hk(event)" oninput="ar(this)"></textarea>
-      <button id="sbtn" onclick="send()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-      </button>
-    </div>
-    <div class="hint">Enter para enviar · Shift+Enter para nova linha</div>
-  </div>
-</div>
-<script>
-const APIURL='https://api.iacontaai.com.br';
-let cfg={
-  key:   localStorage.getItem('mia_key')    || '',
-  srv:   localStorage.getItem('mia_srv')    || 'http://172.16.1.240:5000',
-  model: localStorage.getItem('mia_model')  || 'claude-opus-4-7'
-};
-let msgs=[], cid=null, busy=false;
+# ── Cores padrão ──────────────────────────────────────────────────────────────
+C_AZUL      = colors.HexColor("#1a3a6e")
+C_AZUL2     = colors.HexColor("#2d5fa3")
+C_VERDE     = colors.HexColor("#00c2a8")
+C_CINZA     = colors.HexColor("#8892a4")
+C_BG_LIGHT  = colors.HexColor("#f5f7ff")
+C_BG_ALT    = colors.HexColor("#eef2ff")
+C_BORDER    = colors.HexColor("#d0d8f0")
+C_WHITE     = colors.white
 
-function salvarCfg(){
-  cfg.key   = document.getElementById('ck').value.trim();
-  cfg.srv   = document.getElementById('cs').value.trim().replace(/\/$/,'');
-  cfg.model = document.getElementById('cm').value;
-  localStorage.setItem('mia_key',   cfg.key);
-  localStorage.setItem('mia_srv',   cfg.srv);
-  localStorage.setItem('mia_model', cfg.model);
-  document.getElementById('mb').textContent = cfg.model;
-  document.getElementById('nk').style.display = cfg.key ? 'none' : 'block';
-  document.getElementById('cfg').classList.remove('on');
+def now_str():
+    return datetime.now().strftime("%d/%m/%Y às %H:%M")
+
+def safe_name(s):
+    s = re.sub(r'[^\w\s-]', '', s, flags=re.UNICODE)
+    return re.sub(r'\s+', '_', s.strip())[:50]
+
+def md_clean(line):
+    """Converte markdown bold/italic para tags ReportLab"""
+    line = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', line)
+    line = re.sub(r'\*([^*]+)\*',     r'<i>\1</i>',  line)
+    return line
+
+def md_strip_links(line):
+    """Remove markdown links [texto](url) deixando só o texto"""
+    return re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', line)
+
+def md_strip(line):
+    """Remove markdown bold/italic deixando texto puro"""
+    line = re.sub(r'\*\*([^*]+)\*\*', r'\1', line)
+    line = re.sub(r'\*([^*]+)\*',      r'\1', line)
+    return line
+
+def is_image_md(line):
+    """Verifica se é uma linha de imagem markdown"""
+    return bool(re.match(r'^!\[.*\]\(.*\)\s*$', line.strip()))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  GERADOR PDF — NÍVEL PROFISSIONAL
+# ══════════════════════════════════════════════════════════════════════════════
+from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer, Table,
+    TableStyle, HRFlowable, PageBreak, KeepTogether)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY, TA_RIGHT
+from reportlab.platypus.flowables import HRFlowable
+import re as _re
+
+def _pdf_parse_md(content):
+    """Converte markdown em lista de blocos estruturados."""
+    blocks = []
+    lines = content.split('\n')
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        # Pula imagens markdown
+        if _re.match(r'^!\[.*\]\(.*\)$', stripped):
+            i += 1; continue
+
+        # Tabela markdown
+        if '|' in stripped and i+1 < len(lines) and _re.match(r'^\|[-| :]+\|', lines[i+1].strip()):
+            headers = [c.strip() for c in stripped.split('|') if c.strip()]
+            i += 2
+            rows = []
+            while i < len(lines) and '|' in lines[i]:
+                r = [c.strip() for c in lines[i].split('|') if c.strip()]
+                if r: rows.append(r)
+                i += 1
+            blocks.append({'type': 'table', 'headers': headers, 'rows': rows})
+            continue
+
+        # Heading levels
+        m = _re.match(r'^(#{1,4})\s+(.+)', stripped)
+        if m:
+            level = len(m.group(1))
+            text = m.group(2).strip()
+            # Remove markdown inline
+            text = _re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+            text = _re.sub(r'\*(.+?)\*', r'\1', text)
+            blocks.append({'type': f'h{level}', 'text': text})
+            i += 1; continue
+
+        # Separador
+        if _re.match(r'^---+$', stripped):
+            blocks.append({'type': 'hr'})
+            i += 1; continue
+
+        # Lista com bullets
+        if _re.match(r'^[-*•]\s+', stripped):
+            items = []
+            while i < len(lines) and _re.match(r'^[-*•]\s+', lines[i].strip()):
+                items.append(lines[i].strip()[2:].strip())
+                i += 1
+            blocks.append({'type': 'bullets', 'items': items})
+            continue
+
+        # Lista numerada
+        if _re.match(r'^\d+\.\s+', stripped):
+            items = []
+            while i < len(lines) and _re.match(r'^\d+\.\s+', lines[i].strip()):
+                items.append(_re.sub(r'^\d+\.\s+', '', lines[i].strip()))
+                i += 1
+            blocks.append({'type': 'numbered', 'items': items})
+            continue
+
+        # Linha vazia
+        if not stripped:
+            blocks.append({'type': 'space'})
+            i += 1; continue
+
+        # Parágrafo normal
+        # Acumula linhas consecutivas não especiais
+        para_lines = []
+        while i < len(lines):
+            l = lines[i].strip()
+            if (not l or l.startswith('#') or l.startswith('|') or
+                _re.match(r'^[-*•]\s+', l) or _re.match(r'^\d+\.\s+', l) or
+                _re.match(r'^---+$', l)):
+                break
+            para_lines.append(l)
+            i += 1
+        text = ' '.join(para_lines)
+        if text.strip():
+            blocks.append({'type': 'para', 'text': text})
+        continue
+
+    return blocks
+
+
+def _md_to_rl(text):
+    """Converte markdown inline para tags ReportLab."""
+    text = _re.sub(r'&', '&amp;', text)
+    text = _re.sub(r'<(?!/?[biu])', '&lt;', text)
+    text = _re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+    text = _re.sub(r'\*(.+?)\*',     r'<i>\1</i>', text)
+    text = _re.sub(r'`(.+?)`',       r'<font name="Courier" size="9">\1</font>', text)
+    text = _re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+    return text
+
+
+def gen_pdf(titulo, content):
+    buf = io.BytesIO()
+
+    # Paleta neutra profissional
+    C_DARK   = colors.HexColor("#1a1f2e")
+    C_MID    = colors.HexColor("#2d3748")
+    C_ACCENT = colors.HexColor("#2b6cb0")
+    C_LIGHT  = colors.HexColor("#ebf4ff")
+    C_BG     = colors.HexColor("#f8fafc")
+    C_BORDER = colors.HexColor("#cbd5e0")
+    C_MUTED  = colors.HexColor("#718096")
+    C_WHITE  = colors.white
+    C_STRIPE = colors.HexColor("#f7fafc")
+
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+        topMargin=2.5*cm, bottomMargin=2.5*cm,
+        leftMargin=2.5*cm, rightMargin=2.5*cm,
+        title=titulo)
+
+    W = doc.width
+
+    # ── Estilos ───────────────────────────────────────────────────────────────
+    def sty(name, **kw):
+        return ParagraphStyle(name, **kw)
+
+    s_cover_title = sty('ct', fontSize=26, fontName='Helvetica-Bold',
+        textColor=C_WHITE, alignment=TA_CENTER, leading=34, spaceAfter=8)
+    s_cover_date  = sty('cd', fontSize=10, textColor=colors.HexColor("#a0aec0"),
+        alignment=TA_CENTER)
+    s_h1  = sty('h1', fontSize=14, fontName='Helvetica-Bold', textColor=C_DARK,
+        spaceBefore=16, spaceAfter=6, leading=20,
+        borderPad=(0,0,4,0))
+    s_h2  = sty('h2', fontSize=12, fontName='Helvetica-Bold', textColor=C_ACCENT,
+        spaceBefore=12, spaceAfter=4, leading=16)
+    s_h3  = sty('h3', fontSize=10.5, fontName='Helvetica-Bold', textColor=C_MID,
+        spaceBefore=8, spaceAfter=3, leading=14)
+    s_h4  = sty('h4', fontSize=10, fontName='Helvetica-BoldOblique', textColor=C_MUTED,
+        spaceBefore=6, spaceAfter=2, leading=13)
+    s_body = sty('body', fontSize=10, leading=16, spaceAfter=6,
+        alignment=TA_JUSTIFY, textColor=C_DARK,
+        fontName='Helvetica')
+    s_bul  = sty('bul', fontSize=10, leading=15, leftIndent=16,
+        firstLineIndent=0, spaceAfter=3, textColor=C_DARK)
+    s_num  = sty('num', fontSize=10, leading=15, leftIndent=20,
+        firstLineIndent=-14, spaceAfter=3, textColor=C_DARK)
+    s_foot = sty('foot', fontSize=8, textColor=C_MUTED, alignment=TA_CENTER)
+    s_toc  = sty('toc', fontSize=10, textColor=C_ACCENT, leading=18,
+        leftIndent=0, spaceAfter=2)
+    s_toc2 = sty('toc2', fontSize=9.5, textColor=C_MID, leading=16,
+        leftIndent=14, spaceAfter=1)
+
+    story = []
+
+    # ── CAPA ─────────────────────────────────────────────────────────────────
+    if titulo:
+        capa = Table([[Paragraph(titulo, s_cover_title)],
+                      [Paragraph(now_str(), s_cover_date)]],
+                     colWidths=[W])
+        capa.setStyle(TableStyle([
+            ('BACKGROUND',    (0,0), (-1,-1), C_DARK),
+            ('TOPPADDING',    (0,0), (0,0),   28),
+            ('BOTTOMPADDING', (0,0), (0,0),   6),
+            ('TOPPADDING',    (0,1), (0,1),   4),
+            ('BOTTOMPADDING', (0,1), (0,1),   24),
+            ('LEFTPADDING',   (0,0), (-1,-1), 24),
+            ('RIGHTPADDING',  (0,0), (-1,-1), 24),
+            ('ROUNDEDCORNERS',(0,0), (-1,-1), [6,6,6,6]),
+        ]))
+        story.append(capa)
+        story.append(Spacer(1, 0.4*cm))
+        # Linha accent
+        story.append(Table([['']], colWidths=[W], rowHeights=[4]))
+        story[-1].setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),C_ACCENT),
+                                        ('TOPPADDING',(0,0),(-1,-1),0),
+                                        ('BOTTOMPADDING',(0,0),(-1,-1),0)]))
+        story.append(Spacer(1, 0.6*cm))
+
+    # ── SUMÁRIO AUTOMÁTICO ────────────────────────────────────────────────────
+    blocks = _pdf_parse_md(content)
+    headings = [(b['type'], b['text']) for b in blocks
+                if b['type'] in ('h1','h2') and b.get('text','').strip()
+                and b['text'].strip().lower() != (titulo or '').strip().lower()]
+
+    if len(headings) >= 3:
+        toc_title = Table([['ÍNDICE']], colWidths=[W])
+        toc_title.setStyle(TableStyle([
+            ('BACKGROUND',(0,0),(-1,-1),C_BG),
+            ('FONTNAME',(0,0),(-1,-1),'Helvetica-Bold'),
+            ('FONTSIZE',(0,0),(-1,-1),9),
+            ('TEXTCOLOR',(0,0),(-1,-1),C_MUTED),
+            ('TOPPADDING',(0,0),(-1,-1),6),
+            ('BOTTOMPADDING',(0,0),(-1,-1),6),
+            ('LEFTPADDING',(0,0),(-1,-1),10),
+        ]))
+        story.append(toc_title)
+        for htype, htxt in headings:
+            s = s_toc if htype == 'h1' else s_toc2
+            prefix = '● ' if htype == 'h1' else '  · '
+            story.append(Paragraph(prefix + htxt, s))
+        story.append(Spacer(1, 0.5*cm))
+        story.append(HRFlowable(width='100%', thickness=0.5,
+                                 color=C_BORDER, spaceAfter=12))
+
+    # ── CONTEÚDO ──────────────────────────────────────────────────────────────
+    for block in blocks:
+        btype = block.get('type')
+        txt   = block.get('text','')
+
+        # Pula título duplicado
+        if btype in ('h1','h2','h3') and txt.strip().lower() == (titulo or '').strip().lower():
+            continue
+
+        if btype == 'h1':
+            # Caixa de seção
+            hbox = Table([[Paragraph(_md_to_rl(txt), s_h1)]], colWidths=[W])
+            hbox.setStyle(TableStyle([
+                ('BACKGROUND',(0,0),(-1,-1),C_LIGHT),
+                ('LEFTPADDING',(0,0),(-1,-1),12),
+                ('RIGHTPADDING',(0,0),(-1,-1),12),
+                ('TOPPADDING',(0,0),(-1,-1),8),
+                ('BOTTOMPADDING',(0,0),(-1,-1),8),
+                ('LINEBEFORE',(0,0),(0,-1),4,C_ACCENT),
+                ('LINEBELOW',(0,-1),(-1,-1),0.5,C_BORDER),
+            ]))
+            story.append(Spacer(1, 6))
+            story.append(hbox)
+            story.append(Spacer(1, 4))
+
+        elif btype == 'h2':
+            story.append(Spacer(1, 4))
+            story.append(Paragraph(_md_to_rl(txt), s_h2))
+            story.append(HRFlowable(width='40%', thickness=1.5,
+                                     color=C_ACCENT, spaceAfter=4))
+
+        elif btype == 'h3':
+            story.append(Spacer(1, 2))
+            story.append(Paragraph(_md_to_rl(txt), s_h3))
+
+        elif btype == 'h4':
+            story.append(Paragraph(_md_to_rl(txt), s_h4))
+
+        elif btype == 'para':
+            story.append(Paragraph(_md_to_rl(txt), s_body))
+
+        elif btype == 'bullets':
+            for item in block['items']:
+                story.append(Paragraph(
+                    f'<font color="#2b6cb0">▸</font>  {_md_to_rl(item)}', s_bul))
+
+        elif btype == 'numbered':
+            for n, item in enumerate(block['items'], 1):
+                story.append(Paragraph(
+                    f'<b><font color="#2b6cb0">{n}.</font></b>  {_md_to_rl(item)}', s_num))
+
+        elif btype == 'table':
+            headers = block.get('headers', [])
+            rows    = block.get('rows', [])
+            if not headers: continue
+            ncols = len(headers)
+            all_rows = [headers] + rows
+            # Calcula larguras proporcionais
+            col_lens = [max((len(str(r[j])) if j < len(r) else 4)
+                            for r in all_rows) for j in range(ncols)]
+            total = sum(col_lens) or 1
+            col_widths = [W * (cl/total) for cl in col_lens]
+
+            is_wide = ncols > 5
+            fs = 8 if is_wide else 9.5
+            pad = 3 if is_wide else 6
+
+            s_th = sty('th', fontSize=fs, fontName='Helvetica-Bold',
+                       textColor=C_WHITE, alignment=TA_CENTER)
+            s_td = sty('td', fontSize=fs, leading=fs+4,
+                       textColor=C_DARK, alignment=TA_LEFT)
+
+            tdata = [[Paragraph(str(h), s_th) for h in headers]]
+            for ri, row in enumerate(rows):
+                tdata.append([Paragraph(str(row[j]) if j < len(row) else '', s_td)
+                               for j in range(ncols)])
+
+            tbl = Table(tdata, colWidths=col_widths, repeatRows=1)
+            ts = TableStyle([
+                ('BACKGROUND',     (0,0), (-1,0), C_DARK),
+                ('LINEBELOW',      (0,0), (-1,0), 2, C_ACCENT),
+                ('ROWBACKGROUNDS', (0,1), (-1,-1), [C_WHITE, C_STRIPE]),
+                ('GRID',           (0,0), (-1,-1), 0.3, C_BORDER),
+                ('BOX',            (0,0), (-1,-1), 1,   C_BORDER),
+                ('TOPPADDING',     (0,0), (-1,-1), pad),
+                ('BOTTOMPADDING',  (0,0), (-1,-1), pad),
+                ('LEFTPADDING',    (0,0), (-1,-1), pad+2),
+                ('RIGHTPADDING',   (0,0), (-1,-1), pad+2),
+                ('VALIGN',         (0,0), (-1,-1), 'MIDDLE'),
+            ])
+            tbl.setStyle(ts)
+            story.append(Spacer(1, 6))
+            story.append(tbl)
+            story.append(Spacer(1, 8))
+
+        elif btype == 'hr':
+            story.append(HRFlowable(width='100%', thickness=0.5,
+                                     color=C_BORDER, spaceBefore=6, spaceAfter=6))
+        elif btype == 'space':
+            story.append(Spacer(1, 4))
+
+    # ── RODAPÉ ────────────────────────────────────────────────────────────────
+    story.append(Spacer(1, 12))
+    story.append(HRFlowable(width='100%', thickness=0.5, color=C_BORDER))
+    story.append(Spacer(1, 4))
+    story.append(Paragraph(f"Gerado por Master IA · {now_str()}", s_foot))
+
+    # Número de página via canvas
+    def _add_page_num(canvas, doc):
+        canvas.saveState()
+        canvas.setFont('Helvetica', 8)
+        canvas.setFillColor(C_MUTED)
+        canvas.drawRightString(doc.pagesize[0] - 2*cm,
+                               1.2*cm, f"Página {doc.page}")
+        canvas.restoreState()
+
+    doc.build(story, onLaterPages=_add_page_num, onFirstPage=_add_page_num)
+    buf.seek(0)
+    return buf.read()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  GERADOR WORD — NÍVEL PROFISSIONAL
+# ══════════════════════════════════════════════════════════════════════════════
+from docx import Document
+from docx.shared import Pt, RGBColor, Cm, Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+from docx.enum.style import WD_STYLE_TYPE
+
+def _word_set_cell_bg(cell, hex_color):
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    shd = OxmlElement('w:shd')
+    shd.set(qn('w:fill'), hex_color)
+    shd.set(qn('w:val'), 'clear')
+    tcPr.append(shd)
+
+def _word_add_border_bottom(paragraph, hex_color='2b6cb0', size=12):
+    pPr = paragraph._p.get_or_add_pPr()
+    pBdr = OxmlElement('w:pBdr')
+    bottom = OxmlElement('w:bottom')
+    bottom.set(qn('w:val'), 'single')
+    bottom.set(qn('w:sz'), str(size))
+    bottom.set(qn('w:color'), hex_color)
+    pBdr.append(bottom)
+    pPr.append(pBdr)
+
+def gen_word(titulo, content):
+    doc = Document()
+
+    # Margens
+    for s in doc.sections:
+        s.top_margin = s.bottom_margin = Cm(2.5)
+        s.left_margin = s.right_margin = Cm(3)
+        # Número de página no rodapé
+        footer = s.footer
+        fp = footer.paragraphs[0]
+        fp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        run = fp.add_run()
+        fldChar1 = OxmlElement('w:fldChar')
+        fldChar1.set(qn('w:fldCharType'), 'begin')
+        instrText = OxmlElement('w:instrText')
+        instrText.text = 'PAGE'
+        fldChar2 = OxmlElement('w:fldChar')
+        fldChar2.set(qn('w:fldCharType'), 'end')
+        run._r.append(fldChar1)
+        run._r.append(instrText)
+        run._r.append(fldChar2)
+        run.font.size = Pt(9)
+        run.font.color.rgb = RGBColor(0x71, 0x80, 0x96)
+
+    # ── Capa ────────────────────────────────────────────────────────────────
+    if titulo:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run(titulo)
+        run.bold = True
+        run.font.size = Pt(20)
+        run.font.color.rgb = RGBColor(0x1a, 0x1f, 0x2e)
+
+        p2 = doc.add_paragraph()
+        p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r2 = p2.add_run(now_str())
+        r2.font.size = Pt(9)
+        r2.font.color.rgb = RGBColor(0x71, 0x80, 0x96)
+
+        _word_add_border_bottom(p2, '2b6cb0', 12)
+        doc.add_paragraph()
+
+    # ── Parser ──────────────────────────────────────────────────────────────
+    blocks = _pdf_parse_md(content)
+
+    for block in blocks:
+        btype = block.get('type')
+        txt   = _re.sub(r'\*\*(.+?)\*\*', r'\1', block.get('text',''))
+        txt   = _re.sub(r'\*(.+?)\*', r'\1', txt)
+        txt   = _re.sub(r'`(.+?)`', r'\1', txt)
+
+        # Pula título duplicado
+        if btype in ('h1','h2','h3') and txt.strip().lower() == (titulo or '').strip().lower():
+            continue
+
+        if btype == 'h1':
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            run = p.add_run(txt.upper())
+            run.bold = True
+            run.font.size = Pt(13)
+            run.font.color.rgb = RGBColor(0x1a, 0x1f, 0x2e)
+            _word_add_border_bottom(p, '2b6cb0', 8)
+
+        elif btype == 'h2':
+            p = doc.add_paragraph()
+            run = p.add_run(txt)
+            run.bold = True
+            run.font.size = Pt(11.5)
+            run.font.color.rgb = RGBColor(0x2b, 0x6c, 0xb0)
+
+        elif btype == 'h3':
+            p = doc.add_paragraph()
+            run = p.add_run(txt)
+            run.bold = True
+            run.font.size = Pt(10.5)
+            run.font.color.rgb = RGBColor(0x2d, 0x37, 0x48)
+
+        elif btype == 'h4':
+            p = doc.add_paragraph()
+            run = p.add_run(txt)
+            run.bold = True
+            run.italic = True
+            run.font.size = Pt(10)
+            run.font.color.rgb = RGBColor(0x71, 0x80, 0x96)
+
+        elif btype == 'para':
+            raw = block.get('text','')
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            # Processa bold/italic inline
+            parts = _re.split(r'(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)', raw)
+            for part in parts:
+                if part.startswith('**') and part.endswith('**'):
+                    r = p.add_run(part[2:-2]); r.bold = True
+                elif part.startswith('*') and part.endswith('*'):
+                    r = p.add_run(part[1:-1]); r.italic = True
+                elif part.startswith('`') and part.endswith('`'):
+                    r = p.add_run(part[1:-1])
+                    r.font.name = 'Courier New'; r.font.size = Pt(9)
+                elif part:
+                    p.add_run(part)
+            for run in p.runs:
+                run.font.size = Pt(10.5)
+
+        elif btype == 'bullets':
+            for item in block['items']:
+                p = doc.add_paragraph(style='List Bullet')
+                item_clean = _re.sub(r'\*\*(.+?)\*\*', r'\1', item)
+                item_clean = _re.sub(r'\*(.+?)\*', r'\1', item_clean)
+                run = p.add_run(item_clean)
+                run.font.size = Pt(10.5)
+
+        elif btype == 'numbered':
+            for item in block['items']:
+                p = doc.add_paragraph(style='List Number')
+                item_clean = _re.sub(r'\*\*(.+?)\*\*', r'\1', item)
+                run = p.add_run(item_clean)
+                run.font.size = Pt(10.5)
+
+        elif btype == 'table':
+            headers = block.get('headers', [])
+            rows    = block.get('rows', [])
+            if not headers: continue
+            ncols = len(headers)
+            tbl = doc.add_table(rows=1+len(rows), cols=ncols)
+            tbl.style = 'Table Grid'
+            # Header
+            for j, h in enumerate(headers):
+                cell = tbl.rows[0].cells[j]
+                cell.text = _re.sub(r'\*\*(.+?)\*\*', r'\1', h)
+                run = cell.paragraphs[0].runs[0] if cell.paragraphs[0].runs else cell.paragraphs[0].add_run(cell.text)
+                run.bold = True
+                run.font.color.rgb = RGBColor(0xff, 0xff, 0xff)
+                run.font.size = Pt(10)
+                _word_set_cell_bg(cell, '1a1f2e')
+                cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            # Rows
+            for ri, row in enumerate(rows):
+                bg = 'f7fafc' if ri % 2 == 0 else 'ffffff'
+                for j in range(ncols):
+                    cell = tbl.rows[ri+1].cells[j]
+                    val = row[j] if j < len(row) else ''
+                    cell.text = _re.sub(r'\*\*(.+?)\*\*', r'\1', str(val))
+                    _word_set_cell_bg(cell, bg)
+                    if cell.paragraphs[0].runs:
+                        cell.paragraphs[0].runs[0].font.size = Pt(10)
+            doc.add_paragraph()
+
+        elif btype == 'hr':
+            p = doc.add_paragraph()
+            _word_add_border_bottom(p, 'cbd5e0', 4)
+
+        elif btype == 'space':
+            doc.add_paragraph()
+
+    # ── Rodapé de conteúdo ──────────────────────────────────────────────────
+    doc.add_paragraph()
+    pf = doc.add_paragraph()
+    pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    _word_add_border_bottom(pf, 'cbd5e0', 4)
+    rf = pf.add_run(f"Gerado por Master IA · {now_str()}")
+    rf.font.size = Pt(8)
+    rf.font.color.rgb = RGBColor(0x71, 0x80, 0x96)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.read()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  GERADOR EXCEL — NÍVEL PROFISSIONAL
+# ══════════════════════════════════════════════════════════════════════════════
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles.differential import DifferentialStyle
+from openpyxl.formatting.rule import ColorScaleRule, DataBarRule, Rule
+from openpyxl.utils import get_column_letter
+
+def gen_excel(titulo, content):
+    import re as _re2
+    wb = openpyxl.Workbook()
+
+    # ── Paleta ────────────────────────────────────────────────────────────────
+    C_HEADER  = "1a1f2e"
+    C_ACCENT  = "2b6cb0"
+    C_ACCENT2 = "ebf4ff"
+    C_STRIPE  = "f7fafc"
+    C_WHITE   = "FFFFFF"
+    C_MUTED   = "718096"
+    C_GREEN   = "c6f6d5"
+    C_RED     = "fed7d7"
+    C_YELLOW  = "fefcbf"
+    C_BORDER  = "cbd5e0"
+
+    f_hdr   = Font(bold=True, color="FFFFFF", size=10, name='Calibri')
+    f_title = Font(bold=True, color=C_HEADER, size=14, name='Calibri')
+    f_sub   = Font(bold=True, color=C_ACCENT, size=11, name='Calibri')
+    f_h3    = Font(bold=True, color="2d3748", size=10, name='Calibri')
+    f_body  = Font(size=10, name='Calibri')
+    f_num   = Font(size=10, name='Calibri')
+    f_total = Font(bold=True, color="FFFFFF", size=10, name='Calibri')
+    f_muted = Font(color=C_MUTED, size=8, italic=True, name='Calibri')
+
+    fill_hdr    = PatternFill("solid", fgColor=C_HEADER)
+    fill_accent = PatternFill("solid", fgColor=C_ACCENT)
+    fill_stripe = PatternFill("solid", fgColor=C_STRIPE)
+    fill_alt    = PatternFill("solid", fgColor=C_ACCENT2)
+    fill_white  = PatternFill("solid", fgColor=C_WHITE)
+    fill_total  = PatternFill("solid", fgColor=C_ACCENT)
+
+    thin = Side(style="thin", color=C_BORDER)
+    brd  = Border(left=thin, right=thin, top=thin, bottom=thin)
+    brd_thick_bottom = Border(left=thin, right=thin, top=thin,
+                               bottom=Side(style="medium", color=C_ACCENT))
+
+    def safe_title(t):
+        bad = r'[:\\/?*\[\]]'
+        return _re2.sub(bad, '-', str(t or 'Dados'))[:28]
+
+    def try_num(v):
+        if isinstance(v, (int, float)): return v
+        s = str(v).replace(' ', '').replace('.', '').replace(',', '.')
+        # Remove R$ e %
+        s = _re2.sub(r'[R$%]', '', s).strip()
+        try: return float(s)
+        except: return v
+
+    def is_num_col(rows, col_idx):
+        vals = [try_num(r[col_idx]) for r in rows if col_idx < len(r)]
+        nums = [v for v in vals if isinstance(try_num(v), float)]
+        return len(nums) >= len(vals) * 0.6 and len(nums) > 0
+
+    # ── Parseia blocos de tabela e texto do markdown ───────────────────────
+    blocks = _pdf_parse_md(content)
+    tables = [(b['headers'], b['rows']) for b in blocks if b['type'] == 'table']
+    texts  = [(b['type'], b.get('text','')) for b in blocks
+              if b['type'] in ('h1','h2','h3','para','bullets','numbered')]
+
+    # ── ABA PRINCIPAL (Dados) ──────────────────────────────────────────────
+    ws = wb.active
+    ws.title = safe_title(titulo)
+    ws.sheet_view.showGridLines = False
+    ws.column_dimensions['A'].width = 2  # margem
+
+    row = 1
+
+    # Título
+    ws.merge_cells(f"B{row}:J{row}")
+    c = ws[f"B{row}"]
+    c.value   = titulo or "Relatório"
+    c.font    = f_title
+    c.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    ws.row_dimensions[row].height = 32
+    row += 1
+
+    ws.merge_cells(f"B{row}:J{row}")
+    c2 = ws[f"B{row}"]
+    c2.value = now_str()
+    c2.font  = f_muted
+    c2.alignment = Alignment(horizontal="left", indent=1)
+    ws.row_dimensions[row].height = 14
+    row += 2
+
+    # Linha accent
+    for col in range(2, 11):
+        c = ws.cell(row=row, column=col)
+        c.fill = fill_accent
+    ws.row_dimensions[row].height = 3
+    row += 2
+
+    # Textos/headings antes das tabelas
+    for btype, txt in texts:
+        clean = _re2.sub(r'\*\*(.+?)\*\*', r'\1', txt)
+        clean = _re2.sub(r'\*(.+?)\*',     r'\1', clean)
+        if btype == 'h1':
+            ws.merge_cells(f"B{row}:J{row}")
+            c = ws[f"B{row}"]
+            c.value = clean.upper()
+            c.font  = f_sub
+            c.fill  = fill_alt
+            c.alignment = Alignment(horizontal="left", indent=2, vertical="center")
+            c.border = Border(left=Side(style="medium", color=C_ACCENT))
+            ws.row_dimensions[row].height = 22
+            row += 1
+        elif btype == 'h2':
+            ws.merge_cells(f"B{row}:J{row}")
+            c = ws[f"B{row}"]
+            c.value = clean
+            c.font  = f_h3
+            c.alignment = Alignment(horizontal="left", indent=1)
+            ws.row_dimensions[row].height = 18
+            row += 1
+        elif btype in ('para',):
+            ws.merge_cells(f"B{row}:J{row}")
+            c = ws[f"B{row}"]
+            c.value = clean[:500]
+            c.font  = f_body
+            c.alignment = Alignment(wrap_text=True, horizontal="left", indent=1)
+            ws.row_dimensions[row].height = 15
+            row += 1
+
+    if texts: row += 1
+
+    # Tabelas
+    for tidx, (headers, rows_data) in enumerate(tables):
+        if not headers: continue
+        ncols = len(headers)
+        start_col = 2  # começa na col B
+
+        # Detecta colunas numéricas
+        num_cols = {j for j in range(ncols) if is_num_col(rows_data, j)}
+
+        # Header
+        for j, h in enumerate(headers):
+            c = ws.cell(row=row, column=start_col+j)
+            clean_h = _re2.sub(r'\*\*(.+?)\*\*', r'\1', str(h))
+            c.value = clean_h
+            c.font  = f_hdr
+            c.fill  = fill_hdr
+            c.border = brd_thick_bottom
+            c.alignment = Alignment(horizontal="center", vertical="center",
+                                    wrap_text=True)
+        ws.row_dimensions[row].height = 20
+        data_start_row = row + 1
+        row += 1
+
+        # Dados
+        for ri, data_row in enumerate(rows_data):
+            fill = fill_stripe if ri % 2 == 0 else fill_white
+            for j in range(ncols):
+                c = ws.cell(row=row, column=start_col+j)
+                raw_val = data_row[j] if j < len(data_row) else ''
+                num_val = try_num(raw_val)
+                c.value = num_val
+                c.font  = f_num if j in num_cols else f_body
+                c.fill  = fill
+                c.border = brd
+                c.alignment = Alignment(
+                    horizontal="right" if j in num_cols else "left",
+                    vertical="center", wrap_text=True, indent=1)
+                if j in num_cols and isinstance(num_val, float):
+                    # Detecta % ou R$
+                    raw_s = str(raw_val)
+                    if '%' in raw_s:
+                        c.number_format = '0.00%'
+                    elif any(x in raw_s for x in ['R$','r$']):
+                        c.number_format = 'R$ #,##0.00'
+                    else:
+                        c.number_format = '#,##0.00'
+            ws.row_dimensions[row].height = 18
+            row += 1
+
+        # Linha de totais para colunas numéricas
+        if rows_data and num_cols:
+            for j in range(ncols):
+                c = ws.cell(row=row, column=start_col+j)
+                if j == 0:
+                    c.value = "TOTAL"
+                    c.font  = f_total
+                    c.alignment = Alignment(horizontal="center", vertical="center")
+                elif j in num_cols:
+                    col_letter = get_column_letter(start_col+j)
+                    c.value = f"=SUM({col_letter}{data_start_row}:{col_letter}{row-1})"
+                    c.font  = f_total
+                    c.number_format = '#,##0.00'
+                    c.alignment = Alignment(horizontal="right", vertical="center")
+                c.fill   = fill_accent
+                c.border = brd
+            ws.row_dimensions[row].height = 20
+
+            # Formatação condicional nas colunas numéricas
+            for j in num_cols:
+                col_letter = get_column_letter(start_col+j)
+                cell_range = f"{col_letter}{data_start_row}:{col_letter}{row-1}"
+                ws.conditional_formatting.add(cell_range,
+                    ColorScaleRule(
+                        start_type='min', start_color='FED7D7',
+                        mid_type='percentile', mid_value=50, mid_color='FEFCBF',
+                        end_type='max', end_color='C6F6D5'
+                    )
+                )
+            row += 1
+
+        row += 2  # espaço entre tabelas
+
+    # ── ABA RESUMO (se tiver múltiplas tabelas) ────────────────────────────
+    if len(tables) > 1:
+        ws_res = wb.create_sheet("Resumo", 0)
+        ws_res.sheet_view.showGridLines = False
+        ws_res.merge_cells("A1:E1")
+        c = ws_res["A1"]
+        c.value = f"Resumo — {titulo or 'Relatório'}"
+        c.font  = f_title
+        c.alignment = Alignment(horizontal="center", vertical="center")
+        ws_res.row_dimensions[1].height = 30
+        ws_res.merge_cells("A2:E2")
+        c2 = ws_res["A2"]
+        c2.value = now_str()
+        c2.font  = f_muted
+        c2.alignment = Alignment(horizontal="center")
+        r = 4
+        for i, (headers, rows_data) in enumerate(tables):
+            ws_res.cell(row=r, column=1, value=f"Tabela {i+1}").font = f_sub
+            ws_res.cell(row=r, column=2, value=f"{len(rows_data)} linhas × {len(headers)} colunas").font = f_body
+            r += 1
+
+    # ── Largura automática das colunas ────────────────────────────────────
+    from openpyxl.cell.cell import MergedCell
+    for ws_item in wb.worksheets:
+        for col in ws_item.columns:
+            max_len = 10
+            col_letter = None
+            for c in col:
+                if isinstance(c, MergedCell): continue
+                if col_letter is None:
+                    try: col_letter = c.column_letter
+                    except: pass
+                try:
+                    if c.value: max_len = max(max_len, len(str(c.value)))
+                except: pass
+            if col_letter:
+                ws_item.column_dimensions[col_letter].width = min(max(max_len+2, 12), 45)
+
+    # Rodapé
+    row += 1
+    ws.merge_cells(f"B{row}:J{row}")
+    c = ws[f"B{row}"]
+    c.value = f"Gerado por Master IA · {now_str()}"
+    c.font  = f_muted
+    c.alignment = Alignment(horizontal="center")
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf.read()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  ROTAS
+# ══════════════════════════════════════════════════════════════════════════════
+def auth(req):
+    token = req.headers.get("X-Token") or ""
+    if not token: return None
+    users = load_users()
+    for u, d in users.items():
+        if d.get("token") == token:
+            return u
+    return None
+
+def hash_pw(pw): return hashlib.sha256(pw.encode()).hexdigest()
+
+# Usuários fixos no código — sem arquivo JSON
+USERS = {
+    "italo":   {"senha": hash_pw("master123"), "nome": "Ítalo",   "token": ""},
+    "willian": {"senha": hash_pw("master123"), "nome": "Willian", "token": ""},
+    "augusto": {"senha": hash_pw("master123"), "nome": "Augusto", "token": ""},
+    "trinid":  {"senha": hash_pw("master123"), "nome": "Trinid",  "token": ""},
+    "rafael":  {"senha": hash_pw("master123"), "nome": "Rafael",  "token": ""},
+    "diogo":   {"senha": hash_pw("master123"), "nome": "Diogo",   "token": ""},
+    "bia":     {"senha": hash_pw("master123"), "nome": "Bia",     "token": ""},
 }
 
+def load_users(): return USERS
+def save_users(u): USERS.update(u)
+def seed_users(): pass
+
+@app.route("/", methods=["GET"])
+def index():
+    html = Path(__file__).parent / "master_chat.html"
+    return html.read_text(encoding="utf-8") if html.exists() else "master_chat.html não encontrado", 404
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok", "time": now_str()})
+
+@app.route("/login", methods=["POST"])
+def login():
+    d = request.get_json()
+    user = (d.get("username") or "").strip().lower()
+    pw   = (d.get("senha") or "").strip()
+    users = load_users()
+    u = users.get(user)
+    if not u or u["senha"] != hash_pw(pw):
+        return jsonify({"erro": "Usuário ou senha inválidos"}), 401
+    token = secrets.token_hex(16)
+    users[user]["token"] = token
+    save_users(users)
+    registrar_evento("login", user)
+    return jsonify({"token": token, "nome": u["nome"], "username": user})
+
+@app.route("/gerar", methods=["POST"])
+def gerar():
+    d        = request.get_json()
+    tipo     = (d.get("tipo") or "pdf").lower()
+    titulo   = d.get("titulo") or "Documento"
+    conteudo = d.get("conteudo") or ""
+    if not conteudo:
+        return jsonify({"erro": "Conteúdo vazio"}), 400
+    try:
+        if tipo in ("word", "docx"):
+            data = gen_word(titulo, conteudo)
+            ext  = "docx"
+            mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        elif tipo in ("excel", "xlsx"):
+            data = gen_excel(titulo, conteudo)
+            ext  = "xlsx"
+            mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        else:
+            data = gen_pdf(titulo, conteudo)
+            ext  = "pdf"
+            mime = "application/pdf"
+
+        fname = f"{safe_name(titulo)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
+        (DOCS_DIR / fname).write_bytes(data)
+
+        # Registra evento se autenticado
+        u = auth(request) or "anonimo"
+        registrar_evento("documento", u, tipo)
+
+        return send_file(io.BytesIO(data), as_attachment=True,
+                         download_name=f"{safe_name(titulo)}.{ext}", mimetype=mime)
+    except Exception as e:
+        import traceback
+        return jsonify({"erro": str(e), "trace": traceback.format_exc()}), 500
+
+# ── CHATS ─────────────────────────────────────────────────────────────────────
+CHATS_DIR = DATA_DIR / "chats"
+CHATS_DIR.mkdir(exist_ok=True)
+
+def chats_file(username):
+    return CHATS_DIR / f"{username}.json"
+
+def load_chats(username):
+    f = chats_file(username)
+    try:
+        return json.loads(f.read_text(encoding="utf-8")) if f.exists() else []
+    except Exception:
+        return []
+
+def save_chats(username, chats):
+    chats_file(username).write_text(json.dumps(chats, ensure_ascii=False), encoding="utf-8")
+
+@app.route("/chats", methods=["GET"])
+def get_chats():
+    user = auth(request)
+    if not user: return jsonify({"erro": "Não autenticado"}), 401
+    return jsonify(load_chats(user))
+
+@app.route("/chats", methods=["POST"])
+def post_chat():
+    user = auth(request)
+    if not user: return jsonify({"erro": "Não autenticado"}), 401
+    d = request.get_json()
+    chats = load_chats(user)
+    idx = next((i for i, c in enumerate(chats) if c.get("id") == d.get("id")), -1)
+    if idx >= 0:
+        chats[idx] = d
+    else:
+        chats.append(d)
+        # Conta nova mensagem do usuário
+        msgs = d.get("msgs", [])
+        n_user = sum(1 for m in msgs if m.get("role") == "user")
+        if n_user > 0:
+            registrar_evento("mensagem", user, d.get("id",""))
+    save_chats(user, chats)
+    return jsonify({"ok": True})
+
+@app.route("/chats/<cid>", methods=["GET"])
+def get_chat(cid):
+    user = auth(request)
+    if not user: return jsonify({"erro": "Não autenticado"}), 401
+    chats = load_chats(user)
+    chat = next((c for c in chats if c.get("id") == cid), None)
+    if not chat: return jsonify({"erro": "Chat não encontrado"}), 404
+    return jsonify(chat)
+
+@app.route("/chats/<cid>", methods=["DELETE"])
+def del_chat(cid):
+    user = auth(request)
+    if not user: return jsonify({"erro": "Não autenticado"}), 401
+    chats = [c for c in load_chats(user) if c.get("id") != cid]
+    save_chats(user, chats)
+    return jsonify({"ok": True})
 
 
-function novoChat(){
-  cid='c_'+Date.now(); msgs=[];
-  document.getElementById('ct').textContent='Nova conversa';
-  document.getElementById('msgs').innerHTML=`
-  <div class="welcome" id="wlc">
-    <div class="w-ic">📊</div>
-    <h2>Olá! Como posso ajudar?</h2>
-    <p>Pergunte qualquer coisa. Posso gerar documentos Word, Excel e PDF com o conteúdo das respostas.</p>
-    <div class="suggs">
-      <button class="sugg" onclick="sg('Qual o prazo do SPED Fiscal competência maio 2026?')">📅 Prazo SPED Fiscal</button>
-      <button class="sugg" onclick="sg('Explique substituição tributária de forma simples')">📖 O que é ST?</button>
-      <button class="sugg" onclick="sg('Obrigações acessórias do Simples Nacional')">📋 Simples Nacional</button>
-      <button class="sugg" onclick="sg('Como funciona o DIFAL no Lucro Presumido?')">🧾 DIFAL</button>
-      <button class="sugg" onclick="sg('Diferença entre NF-e, NFC-e e CT-e')">📄 Tipos de NF</button>
-      <button class="sugg" onclick="sg('EFD-Reinf: o que é e quando é obrigatória?')">⚖ EFD-Reinf</button>
-    </div>
-  </div>`;
-  loadChatList();
-}
+@app.route("/admin/usuarios", methods=["POST"])
+def criar_usuario():
+    d = request.get_json()
+    username = (d.get("username") or "").strip().lower()
+    nome     = (d.get("nome") or "").strip()
+    senha    = (d.get("senha") or "master123").strip()
+    if not username or not nome:
+        return jsonify({"erro": "username e nome obrigatórios"}), 400
+    users = load_users()
+    if username in users:
+        return jsonify({"erro": "Usuário já existe"}), 409
+    users[username] = {"senha": hash_pw(senha), "nome": nome}
+    save_users(users)
+    return jsonify({"ok": True})
 
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function fd(ts){const d=new Date(ts),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});}
+if __name__ == "__main__":
+    import socket
+    seed_users()
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80)); ip = s.getsockname()[0]; s.close()
+    except: ip = "127.0.0.1"
+    print("="*55)
+    print("  Master IA — Servidor")
+    print("="*55)
+    print(f"  ✅ Rodando!")
+    print(f"  Local:  http://localhost:5000")
+    print(f"  Rede:   http://{ip}:5000")
+    print("="*55)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
 
-function fmt(t){
-  let s=esc(t);
-  // Tables
-  s=s.replace(/\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)+)/g,(_,h,rows)=>{
-    const ths=h.split('|').filter(c=>c.trim()).map(c=>`<th>${c.trim()}</th>`).join('');
-    const trs=rows.trim().split('\n').map(r=>`<tr>${r.split('|').filter(c=>c.trim()).map(c=>`<td>${c.trim()}</td>`).join('')}</tr>`).join('');
-    return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
-  });
-  s=s.replace(/```([\s\S]*?)```/g,'<pre><code>$1</code></pre>');
-  s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
-  s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  s=s.replace(/\*(.+?)\*/g,'<em>$1</em>');
-  // Headings — renderiza como títulos visuais, não texto com ##
-  s=s.replace(/^# (.+)$/gm,'</p><h2 style="color:#3d7eff;font-size:17px;margin:14px 0 6px;font-weight:600;border-bottom:2px solid #2a3045;padding-bottom:6px">$1</h2><p>');
-  s=s.replace(/^## (.+)$/gm,'</p><h3 style="color:#00c2a8;font-size:14px;margin:12px 0 4px;font-weight:600">$1</h3><p>');
-  s=s.replace(/^### (.+)$/gm,'</p><h4 style="color:#8892a4;font-size:13px;margin:10px 0 3px;font-weight:600">$1</h4><p>');
-  // Lists
-  s=s.replace(/^- (.+)$/gm,'</p><li style="margin:3px 0 3px 16px">$1</li><p>');
-  s=s.replace(/^\d+\. (.+)$/gm,'</p><li style="margin:3px 0 3px 16px;list-style:decimal">$1</li><p>');
-  s=s.replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
-  return `<p>${s}</p>`;
-}
+# ══════════════════════════════════════════════════════════════════════════════
+#  MÓDULO DE LOGS / DASHBOARD
+# ══════════════════════════════════════════════════════════════════════════════
+import threading
+from collections import defaultdict
 
-function addMsg(role, content, withActs=true){
-  document.getElementById('wlc')?.remove();
-  const c=document.getElementById('msgs');
-  const d=document.createElement('div'); d.className=`msg ${role}`;
-  const id='m_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-  const av=role==='u'?'👤':'✦';
-  const acts=(role==='a'&&withActs)?`<div class="acts">
-    <button class="ba" onclick="copiar('${id}',this)">📋 Copiar</button>
-    <button class="ba" onclick="gerarDoc('${id}','pdf',this)">📄 PDF</button>
-    <button class="ba" onclick="gerarDoc('${id}','word',this)">📝 Word</button>
-    <button class="ba" onclick="gerarDoc('${id}','excel',this)">📊 Excel</button>
-  </div>`:'';
-  d.innerHTML=`<div class="av">${av}</div><div class="mc" id="${id}" data-markdown="${String(content).replace(/"/g,'&quot;')}">${fmt(content)}${acts}</div>`;
-  c.appendChild(d); c.scrollTop=c.scrollHeight;
-}
+_lock = threading.Lock()
+LOGS_FILE = Path(os.environ.get("DATA_DIR", "/tmp")) / "master_logs.json"
 
-function addTyping(){
-  document.getElementById('wlc')?.remove();
-  const c=document.getElementById('msgs');
-  const d=document.createElement('div'); d.className='msg a'; d.id='ty';
-  d.innerHTML='<div class="av">✦</div><div class="mc"><div class="typing"><span></span><span></span><span></span></div></div>';
-  c.appendChild(d); c.scrollTop=c.scrollHeight;
-}
+def _load_logs():
+    try:
+        if LOGS_FILE.exists():
+            return json.loads(LOGS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {"events": []}
 
-function copiar(id,btn){
-  const el=document.getElementById(id); const cl=el.cloneNode(true);
-  cl.querySelector('.acts')?.remove();
-  navigator.clipboard.writeText(cl.innerText||cl.textContent).then(()=>{
-    btn.textContent='✅ Copiado!'; btn.classList.add('ok');
-    setTimeout(()=>{btn.textContent='📋 Copiar';btn.classList.remove('ok');},2000);
-  });
-}
+def _save_logs(data):
+    try:
+        LOGS_FILE.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
 
-async function reformatar(texto, tipo, temaOriginal=''){
-  // Se o conteúdo é muito curto (resposta introdutória + ferramentas),
-  // pede para a IA gerar o documento completo sobre o tema
-  const textoUtil = texto.replace(/\[Gráfico gerado.*?\]/g,'').replace(/\[Planilha Excel.*?\]/g,'').trim();
-  const muitoCurto = textoUtil.length < 300;
+def registrar_evento(tipo: str, usuario: str, detalhe: str = ""):
+    """Registra um evento (mensagem, documento, login) no log."""
+    with _lock:
+        data = _load_logs()
+        data["events"].append({
+            "tipo": tipo,          # "mensagem" | "documento" | "login"
+            "usuario": usuario,
+            "detalhe": detalhe,
+            "ts": datetime.now().isoformat()
+        })
+        # Mantém só últimos 5000 eventos
+        if len(data["events"]) > 5000:
+            data["events"] = data["events"][-5000:]
+        _save_logs(data)
 
-  let inst, system;
-  if (muitoCurto && temaOriginal) {
-    // Gera o documento completo do zero sobre o tema
-    inst = `Crie um documento completo e detalhado sobre: "${temaOriginal}"\n\nUse # para título principal, ## para seções, ### para subseções, - para listas, tabelas markdown para dados comparativos. Seja completo, profissional e detalhado. Comece direto pelo # Título, sem introdução conversacional.`;
-    system = 'Você é um especialista em contabilidade e fiscal brasileiro. Crie documentos profissionais, completos e detalhados em markdown. Responda apenas com o documento, sem explicações ou comentários.';
-  } else if (tipo === 'excel') {
-    inst = 'Reformate como planilha estruturada com tabelas markdown. Sem introdução conversacional. Comece direto com o conteúdo estruturado.';
-    system = 'Você é um formatador de documentos. Reformate o conteúdo recebido sem inventar informações novas. Responda apenas com o documento formatado em markdown, sem explicações.';
-  } else {
-    inst = 'Reformate como documento profissional estruturado. Use # para título, ## para seções, ### para subseções, - para listas, tabelas markdown para dados. Remova qualquer introdução como "Claro!", "Olá", "Segue abaixo". Comece direto pelo título. Sem despedidas ou perguntas no final.';
-    system = 'Você é um formatador de documentos. Reformate o conteúdo recebido sem inventar informações novas. Responda apenas com o documento formatado em markdown, sem explicações.';
-  }
+@app.route("/dashboard/stats", methods=["GET"])
+def dashboard_stats():
+    user = auth(request)
+    if not user:
+        return jsonify({"erro": "Não autenticado"}), 401
 
-  try{
-    const r=await fetch(`${APIURL}/v1/messages`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':cfg.key,'Authorization':'Bearer '+cfg.key,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({
-        model:cfg.model, max_tokens:4096,
-        system,
-        messages:[{role:'user',content: inst + (muitoCurto ? '' : '\n\n---\n\n'+textoUtil)}]
-      })
-    });
-    if(!r.ok) return texto;
-    const data=await r.json();
-    return data.content?.[0]?.text||texto;
-  }catch{return texto;}
-}
+    with _lock:
+        data = _load_logs()
 
-async function gerarDoc(msgId, tipo, btn){
-  const el=document.getElementById(msgId);
-  const labels={pdf:'📄 PDF',word:'📝 Word',excel:'📊 Excel'};
+    events = data.get("events", [])
 
-  // Pega markdown original guardado no dataset — muito mais limpo que innerText
-  const mdOriginal = el?.dataset?.markdown || '';
+    # ── Totais gerais ──
+    total_msgs   = sum(1 for e in events if e["tipo"] == "mensagem")
+    total_docs   = sum(1 for e in events if e["tipo"] == "documento")
+    total_logins = sum(1 for e in events if e["tipo"] == "login")
+    usuarios_ativos = len({e["usuario"] for e in events})
 
-  // Fallback: extrai texto do DOM se não tem markdown salvo
-  let original = mdOriginal;
-  if (!original) {
-    const cl = el.cloneNode(true);
-    cl.querySelector('.acts')?.remove();
-    // Remove blocos de imagem/excel/código do DOM antes de pegar texto
-    cl.querySelectorAll('.tool-img-wrap, .excel-block').forEach(b => {
-      b.parentElement?.remove();
-    });
-    // Para código, pega só o texto limpo
-    cl.querySelectorAll('.code-body').forEach(b => {
-      b.innerHTML = '```\n' + b.innerText + '\n```';
-    });
-    original = cl.innerText || cl.textContent || '';
-  }
+    # ── Uso por usuário (mensagens) ──
+    uso_usuario = defaultdict(int)
+    for e in events:
+        if e["tipo"] == "mensagem":
+            uso_usuario[e["usuario"]] += 1
+    uso_usuario = [{"nome": k, "total": v}
+                   for k, v in sorted(uso_usuario.items(), key=lambda x: -x[1])]
 
-  original = original.split('<tool_call>')[0].trim();
+    # ── Documentos por tipo ──
+    docs_tipo = defaultdict(int)
+    for e in events:
+        if e["tipo"] == "documento":
+            docs_tipo[e.get("detalhe", "pdf")] += 1
+    docs_tipo = [{"tipo": k.upper(), "total": v}
+                 for k, v in docs_tipo.items()]
 
-  btn.textContent='⏳ Formatando...'; btn.classList.add('ld'); btn.disabled=true;
+    # ── Atividade últimos 7 dias ──
+    from datetime import timedelta
+    hoje = datetime.now().date()
+    dias = {}
+    for i in range(6, -1, -1):
+        d = (hoje - timedelta(days=i)).isoformat()
+        dias[d] = {"mensagens": 0, "documentos": 0}
+    for e in events:
+        try:
+            d = e["ts"][:10]
+            if d in dias:
+                if e["tipo"] == "mensagem":
+                    dias[d]["mensagens"] += 1
+                elif e["tipo"] == "documento":
+                    dias[d]["documentos"] += 1
+        except Exception:
+            pass
+    atividade = [{"data": k[-5:], "mensagens": v["mensagens"], "documentos": v["documentos"]}
+                 for k, v in dias.items()]
 
-  // Pega o tema da última mensagem do usuário para contexto
-  const ultimaMsg = msgs.filter(m=>m.role==='user').slice(-1)[0];
-  const temaOriginal = typeof ultimaMsg?.content === 'string' ? ultimaMsg.content : '';
+    # ── Top 5 chats mais longos ──
+    chats_count = defaultdict(int)
+    for e in events:
+        if e["tipo"] == "mensagem":
+            chats_count[e.get("detalhe", "")] += 1
+    # Não expõe conteúdo — só contagem anônima
 
-  const conteudo = await reformatar(original, tipo, temaOriginal);
+    # ── Últimos eventos (para o admin) ──
+    ultimos = []
+    for e in reversed(events[-30:]):
+        ultimos.append({
+            "tipo": e["tipo"],
+            "usuario": e["usuario"],
+            "detalhe": e.get("detalhe", ""),
+            "ts": e["ts"][11:16]  # HH:MM
+        })
 
-  // Extrai título da primeira linha # do conteúdo gerado
-  const linhas = conteudo.split('\n');
-  const linhaTitulo = linhas.find(l => l.trim().startsWith('#'));
-  const titulo = linhaTitulo
-    ? linhaTitulo.replace(/^#+\s*/, '').trim()
-    : (linhas.find(l=>l.trim()) || '').substring(0, 60).trim() || 'Documento';
+    return jsonify({
+        "totais": {
+            "mensagens": total_msgs,
+            "documentos": total_docs,
+            "logins": total_logins,
+            "usuarios_ativos": usuarios_ativos,
+        },
+        "uso_usuario": uso_usuario,
+        "docs_tipo": docs_tipo,
+        "atividade": atividade,
+        "ultimos": ultimos,
+        "usuario_logado": user,
+        "is_admin": user == "italo",
+    })
 
-  if(!cfg.srv){
-    btn.textContent=labels[tipo]; btn.classList.remove('ld'); btn.disabled=false;
-    if(tipo==='pdf') pdfLocal(conteudo,titulo);
-    else alert('Configure o endereço do servidor para gerar Word e Excel.\nVá em ⚙ Configurar.');
-    return;
-  }
 
-  btn.textContent='⏳ Gerando...';
-  try{
-    const r=await fetch(`${cfg.srv}/gerar`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Token': session.token || localStorage.getItem('mia_token') || ''},
-      body:JSON.stringify({tipo,titulo,conteudo})
-    });
-    if(!r.ok) throw new Error('Erro '+r.status);
-    const blob=await r.blob();
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    const ext=tipo==='word'?'docx':tipo==='excel'?'xlsx':'pdf';
-    a.href=url; a.download=titulo.replace(/\s+/g,'_')+'.'+ext; a.click(); URL.revokeObjectURL(url);
-    btn.textContent='✅ Baixado!'; btn.classList.remove('ld'); btn.classList.add('ok'); btn.disabled=false;
-    setTimeout(()=>{btn.textContent=labels[tipo];btn.classList.remove('ok');},2500);
-  }catch(e){
-    btn.classList.remove('ld'); btn.disabled=false; btn.textContent=labels[tipo];
-    if(tipo==='pdf') pdfLocal(conteudo,titulo);
-    else alert('Erro ao conectar ao servidor:\n'+e.message);
-  }
-}
+# ══════════════════════════════════════════════════════════════════════════════
+#  MÓDULO ADMIN
+# ══════════════════════════════════════════════════════════════════════════════
+@app.route("/admin/listar", methods=["GET"])
+def admin_listar():
+    user = auth(request)
+    if user != "italo":
+        return jsonify({"erro": "Acesso negado"}), 403
+    users = load_users()
+    lista = []
+    for u, d in users.items():
+        lista.append({
+            "username": u,
+            "nome": d.get("nome", u),
+            "tem_token": bool(d.get("token")),
+        })
+    return jsonify(lista)
 
-function mdParaHtml(text){
-  let s = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // Tables
-  s=s.replace(/\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)+)/g,(_,h,rows)=>{
-    const ths=h.split('|').filter(c=>c.trim()).map(c=>`<th>${c.trim()}</th>`).join('');
-    const trs=rows.trim().split('\n').map(r=>`<tr>${r.split('|').filter(c=>c.trim()).map(c=>`<td>${c.trim()}</td>`).join('')}</tr>`).join('');
-    return `<table>${ths?'<thead><tr>'+ths+'</tr></thead>':''}<tbody>${trs}</tbody></table>`;
-  });
-  s=s.replace(/```[\s\S]*?```/g,'');
-  s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  s=s.replace(/\*(.+?)\*/g,'<em>$1</em>');
-  s=s.replace(/^# (.+)$/gm,'<h1>$1</h1>');
-  s=s.replace(/^## (.+)$/gm,'<h2>$1</h2>');
-  s=s.replace(/^### (.+)$/gm,'<h3>$1</h3>');
-  s=s.replace(/^- (.+)$/gm,'<li>$1</li>');
-  s=s.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
-  s=s.replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
-  return '<p>'+s+'</p>';
-}
+@app.route("/admin/resetar_senha", methods=["POST"])
+def admin_resetar():
+    user = auth(request)
+    if user != "italo":
+        return jsonify({"erro": "Acesso negado"}), 403
+    d = request.get_json()
+    alvo = (d.get("username") or "").strip().lower()
+    nova  = (d.get("nova_senha") or "master123").strip()
+    users = load_users()
+    if alvo not in users:
+        return jsonify({"erro": "Usuário não encontrado"}), 404
+    users[alvo]["senha"] = hash_pw(nova)
+    save_users(users)
+    return jsonify({"ok": True})
 
-function pdfLocal(text,titulo){
-  const now=new Date().toLocaleString('pt-BR');
-  const html=mdParaHtml(text);
-  const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title>
-  <style>
-    @media print { .noprint{display:none} }
-    body{font-family:'Segoe UI',Arial,sans-serif;max-width:820px;margin:0 auto;padding:30px 40px;color:#1a1a2e;line-height:1.7}
-    .header{background:linear-gradient(135deg,#1a3a6e,#2d5fa3);color:white;padding:28px 32px;border-radius:10px;margin-bottom:28px}
-    .header h1{margin:0 0 4px;font-size:20px;font-weight:700}
-    .header span{font-size:11px;opacity:.8}
-    h1{color:#1a3a6e;font-size:18px;border-bottom:3px solid #3d7eff;padding-bottom:8px;margin:24px 0 12px}
-    h2{color:#1a3a6e;font-size:15px;border-left:4px solid #00c2a8;padding-left:10px;margin:20px 0 8px}
-    h3{color:#2d5fa3;font-size:13px;margin:16px 0 6px}
-    p{margin:0 0 10px;font-size:13px;text-align:justify}
-    ul{padding-left:20px;margin:8px 0}
-    li{margin:4px 0;font-size:13px}
-    table{border-collapse:collapse;width:100%;margin:14px 0;font-size:12px;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1)}
-    th{background:#1a3a6e;color:white;padding:10px 12px;text-align:left;font-weight:600}
-    td{padding:8px 12px;border-bottom:1px solid #eef0f5}
-    tr:nth-child(even) td{background:#f5f7ff}
-    tr:hover td{background:#eef2ff}
-    .footer{margin-top:40px;padding-top:14px;border-top:2px solid #eef0f5;font-size:10px;color:#999;text-align:center}
-    strong{color:#1a3a6e}
-    em{color:#2d5fa3;font-style:normal;font-weight:500}
-    code{background:#f0f4ff;padding:2px 6px;border-radius:3px;font-family:monospace;font-size:12px;color:#2d5fa3}
-  </style></head><body>
-  <div class="header"><h1>${titulo}</h1><span>Gerado em ${now}</span></div>
-  ${html}
-  <div class="footer">Gerado por Master IA</div>
-  </body></html>`);
-  w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
-}
+@app.route("/admin/remover", methods=["POST"])
+def admin_remover():
+    user = auth(request)
+    if user != "italo":
+        return jsonify({"erro": "Acesso negado"}), 403
+    d = request.get_json()
+    alvo = (d.get("username") or "").strip().lower()
+    if alvo == "italo":
+        return jsonify({"erro": "Não pode remover o admin"}), 400
+    users = load_users()
+    if alvo not in users:
+        return jsonify({"erro": "Usuário não encontrado"}), 404
+    del users[alvo]
+    save_users(users)
+    return jsonify({"ok": True})
 
-// ── AUTH ─────────────────────────────────────────────────────────────────────
-let session = {token:'', nome:'', username:''};
+@app.route("/admin/adicionar", methods=["POST"])
+def admin_adicionar():
+    user = auth(request)
+    if user != "italo":
+        return jsonify({"erro": "Acesso negado"}), 403
+    d = request.get_json()
+    username = (d.get("username") or "").strip().lower()
+    nome     = (d.get("nome") or "").strip()
+    senha    = (d.get("senha") or "master123").strip()
+    if not username or not nome:
+        return jsonify({"erro": "username e nome obrigatórios"}), 400
+    users = load_users()
+    if username in users:
+        return jsonify({"erro": "Usuário já existe"}), 409
+    users[username] = {"senha": hash_pw(senha), "nome": nome, "token": ""}
+    save_users(users)
+    return jsonify({"ok": True})
 
-async function doLogin(){
-  const user = document.getElementById('li-user').value.trim().toLowerCase();
-  const pass = document.getElementById('li-pass').value;
-  const err  = document.getElementById('li-err');
-  err.style.display = 'none';
-  if (!cfg.srv) { err.textContent = 'Configure o servidor primeiro em ⚙ Configurar'; err.style.display='block'; return; }
-  try {
-    const r = await fetch(cfg.srv + '/login', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username:user, senha:pass})
-    });
-    if (!r.ok) { err.style.display='block'; return; }
-    const d = await r.json();
-    session = {token:d.token, nome:d.nome, username:d.username};
-    localStorage.setItem('mia_token',    session.token);
-    localStorage.setItem('mia_nome',     session.nome);
-    localStorage.setItem('mia_username', session.username);
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('user-display').textContent = session.nome;
-    // Mostra botão Admin só para italo
-    if (session.username === 'italo') {
-      document.getElementById('nav-admin').style.display = '';
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  MÓDULO COMPARATIVO FISCONTECH x DOMÍNIO
+# ══════════════════════════════════════════════════════════════════════════════
+@app.route("/comparativo", methods=["POST"])
+def comparativo():
+    user = auth(request)
+    if not user:
+        return jsonify({"erro": "Não autenticado"}), 401
+
+    d       = request.get_json()
+    dados_a = d.get("dados_a") or ""  # CSV/texto do Fiscontech
+    dados_b = d.get("dados_b") or ""  # CSV/texto do Domínio
+    label_a = d.get("label_a") or "Fiscontech"
+    label_b = d.get("label_b") or "Domínio"
+
+    if not dados_a or not dados_b:
+        return jsonify({"erro": "Envie dados_a e dados_b"}), 400
+
+    # Gera Excel comparativo
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Comparativo"
+
+    az_hdr  = PatternFill("solid", fgColor="1a3a6e")
+    verde   = PatternFill("solid", fgColor="e6faf7")
+    amarelo = PatternFill("solid", fgColor="fff8e1")
+    vermelho= PatternFill("solid", fgColor="ffe5e5")
+    alt     = PatternFill("solid", fgColor="eef2ff")
+    white   = PatternFill("solid", fgColor="FFFFFF")
+
+    f_hdr   = Font(bold=True, color="FFFFFF", size=11)
+    f_tit   = Font(bold=True, color="1a3a6e", size=14)
+    f_sub   = Font(bold=True, color="2d5fa3", size=11)
+    f_body  = Font(size=10)
+    f_diff  = Font(bold=True, color="c0392b", size=10)
+    f_ok    = Font(color="1a7a5c", size=10)
+    brd = Border(
+        left=Side(style="thin", color="d0d8f0"),
+        right=Side(style="thin", color="d0d8f0"),
+        top=Side(style="thin", color="d0d8f0"),
+        bottom=Side(style="thin", color="d0d8f0"),
+    )
+
+    def parsecsv(txt):
+        """Parseia CSV simples ou texto tabulado."""
+        rows = []
+        for line in txt.strip().split("\n"):
+            if not line.strip():
+                continue
+            # tenta ; depois , depois \t
+            for sep in (";", ",", "\t"):
+                parts = line.split(sep)
+                if len(parts) >= 2:
+                    rows.append([p.strip() for p in parts])
+                    break
+            else:
+                rows.append([line.strip()])
+        return rows
+
+    rows_a = parsecsv(dados_a)
+    rows_b = parsecsv(dados_b)
+
+    # Título
+    ws.merge_cells("A1:H1")
+    c = ws["A1"]
+    c.value = f"Comparativo {label_a} × {label_b}"
+    c.font  = f_tit
+    c.fill  = PatternFill("solid", fgColor="f5f7ff")
+    c.alignment = Alignment(horizontal="center")
+    ws.row_dimensions[1].height = 24
+
+    ws.merge_cells("A2:H2")
+    c2 = ws["A2"]
+    c2.value = now_str()
+    c2.font  = Font(color="AAAAAA", size=8, italic=True)
+    c2.alignment = Alignment(horizontal="center")
+
+    row = 4
+
+    # ── Seção A ──────────────────────────────────────────────────────────────
+    ws.merge_cells(f"A{row}:H{row}")
+    ca = ws[f"A{row}"]
+    ca.value = f"▌ {label_a}"
+    ca.font  = f_sub
+    ca.fill  = PatternFill("solid", fgColor="dbeafe")
+    ca.alignment = Alignment(indent=1)
+    row += 1
+
+    for ri, r in enumerate(rows_a):
+        for ci, val in enumerate(r[:8], 1):
+            c = ws.cell(row=row, column=ci, value=val)
+            c.font  = Font(bold=(ri==0), color="FFFFFF" if ri==0 else "2c3347", size=10)
+            c.fill  = az_hdr if ri == 0 else (alt if ri%2==0 else white)
+            c.border = brd
+            c.alignment = Alignment(wrap_text=True)
+        row += 1
+    row += 1
+
+    # ── Seção B ──────────────────────────────────────────────────────────────
+    ws.merge_cells(f"A{row}:H{row}")
+    cb = ws[f"A{row}"]
+    cb.value = f"▌ {label_b}"
+    cb.font  = f_sub
+    cb.fill  = PatternFill("solid", fgColor="dcfce7")
+    cb.alignment = Alignment(indent=1)
+    row += 1
+
+    for ri, r in enumerate(rows_b):
+        for ci, val in enumerate(r[:8], 1):
+            c = ws.cell(row=row, column=ci, value=val)
+            c.font  = Font(bold=(ri==0), color="FFFFFF" if ri==0 else "2c3347", size=10)
+            c.fill  = PatternFill("solid", fgColor="166534") if ri==0 else (verde if ri%2==0 else white)
+            c.border = brd
+            c.alignment = Alignment(wrap_text=True)
+        row += 1
+    row += 1
+
+    # ── Diferenças numéricas automáticas ─────────────────────────────────────
+    def extrair_valores(rows):
+        """Extrai pares (chave, valor_float) da última coluna numérica."""
+        vals = {}
+        for r in rows[1:]:  # pula header
+            if len(r) >= 2:
+                chave = r[0]
+                for cell_val in reversed(r):
+                    v = cell_val.replace(".", "").replace(",", ".").replace("R$","").strip()
+                    try:
+                        vals[chave] = float(v)
+                        break
+                    except ValueError:
+                        pass
+        return vals
+
+    va = extrair_valores(rows_a)
+    vb = extrair_valores(rows_b)
+    todas_chaves = sorted(set(va) | set(vb))
+
+    if todas_chaves:
+        ws.merge_cells(f"A{row}:H{row}")
+        cd = ws[f"A{row}"]
+        cd.value = "▌ Diferenças"
+        cd.font  = Font(bold=True, color="c0392b", size=11)
+        cd.fill  = PatternFill("solid", fgColor="fee2e2")
+        cd.alignment = Alignment(indent=1)
+        row += 1
+
+        # Header diferenças
+        hdrs = ["Chave/Empresa", label_a, label_b, "Diferença", "Status"]
+        for ci, h in enumerate(hdrs, 1):
+            c = ws.cell(row=row, column=ci, value=h)
+            c.font = f_hdr; c.fill = az_hdr; c.border = brd
+            c.alignment = Alignment(horizontal="center")
+        row += 1
+
+        for ri, chave in enumerate(todas_chaves):
+            val_a = va.get(chave)
+            val_b = vb.get(chave)
+            diff  = None
+            status = ""
+            if val_a is not None and val_b is not None:
+                diff = val_b - val_a
+                status = "✅ OK" if abs(diff) < 0.02 else f"⚠ Dif"
+            elif val_a is None:
+                status = "❌ Só no " + label_b
+            else:
+                status = "❌ Só no " + label_a
+
+            bg = verde if status.startswith("✅") else (amarelo if "Dif" in status else vermelho)
+            row_data = [
+                chave,
+                f"R$ {val_a:,.2f}".replace(",","X").replace(".",",").replace("X",".") if val_a is not None else "—",
+                f"R$ {val_b:,.2f}".replace(",","X").replace(".",",").replace("X",".") if val_b is not None else "—",
+                f"R$ {diff:,.2f}".replace(",","X").replace(".",",").replace("X",".") if diff is not None else "—",
+                status,
+            ]
+            for ci, val in enumerate(row_data, 1):
+                c = ws.cell(row=row, column=ci, value=val)
+                c.font  = f_diff if "⚠" in str(status) or "❌" in str(status) else f_ok
+                c.fill  = bg if ri%2==0 else bg
+                c.border = brd
+                c.alignment = Alignment(horizontal="center" if ci > 1 else "left", wrap_text=True)
+            row += 1
+
+    # Largura das colunas
+    from openpyxl.cell.cell import MergedCell
+    for col in ws.columns:
+        ml = 10
+        col_letter = None
+        for c in col:
+            if isinstance(c, MergedCell): continue
+            if col_letter is None:
+                try: col_letter = c.column_letter
+                except: pass
+            try:
+                if c.value: ml = max(ml, len(str(c.value)))
+            except: pass
+        if col_letter:
+            ws.column_dimensions[col_letter].width = min(max(ml + 2, 12), 50)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    data_bytes = buf.read()
+
+    registrar_evento("documento", user, "comparativo")
+
+    fname = f"Comparativo_{safe_name(label_a)}_{safe_name(label_b)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    (DOCS_DIR / fname).write_bytes(data_bytes)
+
+    return send_file(
+        io.BytesIO(data_bytes),
+        as_attachment=True,
+        download_name=fname,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  FERRAMENTAS / TOOL USE
+# ══════════════════════════════════════════════════════════════════════════════
+import base64, subprocess, sys, textwrap, traceback as tb
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import numpy as np
+
+# Paleta Master
+MASTER_COLORS = ["#3d7eff","#00c2a8","#ff6b6b","#ffd93d","#a78bfa","#fb923c","#34d399","#60a5fa"]
+
+def _apply_master_style(fig, ax_list=None):
+    fig.patch.set_facecolor("#181c26")
+    for ax in (ax_list or fig.get_axes()):
+        ax.set_facecolor("#1e2330")
+        ax.tick_params(colors="#8892a4", labelsize=9)
+        ax.xaxis.label.set_color("#8892a4")
+        ax.yaxis.label.set_color("#8892a4")
+        ax.title.set_color("#e8eaf0")
+        for spine in ax.spines.values():
+            spine.set_edgecolor("#2a3045")
+        ax.grid(color="#2a3045", linewidth=0.5, alpha=0.7)
+
+
+def _fig_to_b64(fig):
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=130, bbox_inches="tight",
+                facecolor=fig.get_facecolor())
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode()
+
+
+# ── Gráfico de barras ──────────────────────────────────────────────────────────
+def tool_grafico_barras(labels, valores, titulo="", xlabel="", ylabel="", horizontal=False):
+    fig, ax = plt.subplots(figsize=(7, 4))
+    _apply_master_style(fig, [ax])
+    cores = MASTER_COLORS[:len(labels)]
+    y = np.arange(len(labels))
+    if horizontal:
+        bars = ax.barh(y, valores, color=cores, edgecolor="#2a3045", linewidth=0.5)
+        ax.set_yticks(y); ax.set_yticklabels(labels)
+        for bar, val in zip(bars, valores):
+            ax.text(bar.get_width() + max(valores)*0.01, bar.get_y()+bar.get_height()/2,
+                    f"{val:,.2f}".replace(",","X").replace(".",",").replace("X","."),
+                    va="center", ha="left", color="#e8eaf0", fontsize=8)
+    else:
+        bars = ax.bar(y, valores, color=cores, edgecolor="#2a3045", linewidth=0.5, width=0.65)
+        ax.set_xticks(y); ax.set_xticklabels(labels, rotation=20, ha="right")
+        for bar, val in zip(bars, valores):
+            ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+max(valores)*0.01,
+                    f"{val:,.2f}".replace(",","X").replace(".",",").replace("X","."),
+                    ha="center", va="bottom", color="#e8eaf0", fontsize=8)
+    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", pad=10)
+    if xlabel: ax.set_xlabel(xlabel)
+    if ylabel: ax.set_ylabel(ylabel)
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x,_: f"{x:,.0f}".replace(",",".")))
+    fig.tight_layout()
+    return _fig_to_b64(fig)
+
+
+# ── Gráfico de linhas ──────────────────────────────────────────────────────────
+def tool_grafico_linhas(series, titulo="", xlabel="", ylabel=""):
+    """series: [{"nome": str, "dados": [float,...], "labels": [str,...]}]"""
+    fig, ax = plt.subplots(figsize=(7, 4))
+    _apply_master_style(fig, [ax])
+    for i, s in enumerate(series):
+        cor = MASTER_COLORS[i % len(MASTER_COLORS)]
+        xs = range(len(s["dados"]))
+        ax.plot(xs, s["dados"], color=cor, linewidth=2, marker="o", markersize=5, label=s["nome"])
+        ax.fill_between(xs, s["dados"], alpha=0.07, color=cor)
+    if series and series[0].get("labels"):
+        ax.set_xticks(range(len(series[0]["labels"])))
+        ax.set_xticklabels(series[0]["labels"], rotation=20, ha="right")
+    if len(series) > 1:
+        leg = ax.legend(fontsize=8, facecolor="#1e2330", edgecolor="#2a3045", labelcolor="#e8eaf0")
+    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", pad=10)
+    if xlabel: ax.set_xlabel(xlabel)
+    if ylabel: ax.set_ylabel(ylabel)
+    fig.tight_layout()
+    return _fig_to_b64(fig)
+
+
+# ── Gráfico de pizza ───────────────────────────────────────────────────────────
+def tool_grafico_pizza(labels, valores, titulo=""):
+    fig, ax = plt.subplots(figsize=(6, 5))
+    _apply_master_style(fig, [ax])
+    wedges, texts, autotexts = ax.pie(
+        valores, labels=None,
+        colors=MASTER_COLORS[:len(labels)],
+        autopct="%1.1f%%", startangle=90,
+        wedgeprops=dict(edgecolor="#181c26", linewidth=1.5),
+        pctdistance=0.82
+    )
+    for at in autotexts:
+        at.set_color("#e8eaf0"); at.set_fontsize(8)
+    patches = [mpatches.Patch(color=MASTER_COLORS[i % len(MASTER_COLORS)], label=l)
+               for i, l in enumerate(labels)]
+    ax.legend(handles=patches, loc="lower center", bbox_to_anchor=(0.5, -0.12),
+              ncol=3, fontsize=8, facecolor="#1e2330",
+              edgecolor="#2a3045", labelcolor="#e8eaf0", framealpha=0.9)
+    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", color="#e8eaf0", pad=10)
+    fig.tight_layout()
+    return _fig_to_b64(fig)
+
+
+# ── Gráfico de dispersão ───────────────────────────────────────────────────────
+def tool_grafico_dispersao(series, titulo="", xlabel="", ylabel=""):
+    """series: [{"nome": str, "x": [float], "y": [float]}]"""
+    fig, ax = plt.subplots(figsize=(7, 4))
+    _apply_master_style(fig, [ax])
+    for i, s in enumerate(series):
+        cor = MASTER_COLORS[i % len(MASTER_COLORS)]
+        ax.scatter(s["x"], s["y"], color=cor, label=s["nome"], alpha=0.85, s=50, edgecolors="#181c26", linewidth=0.5)
+    if len(series) > 1:
+        ax.legend(fontsize=8, facecolor="#1e2330", edgecolor="#2a3045", labelcolor="#e8eaf0")
+    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", pad=10)
+    if xlabel: ax.set_xlabel(xlabel)
+    if ylabel: ax.set_ylabel(ylabel)
+    fig.tight_layout()
+    return _fig_to_b64(fig)
+
+
+# ── Execução de Python segura ──────────────────────────────────────────────────
+EXEC_TIMEOUT = 10  # segundos
+
+def tool_executar_python(codigo: str):
+    """
+    Executa código Python em subprocesso isolado.
+    Retorna {"stdout": str, "stderr": str, "erro": bool, "imagem_b64": str|None}
+    """
+    # Injeta captura de plt.show() → base64
+    wrapper = textwrap.dedent(f"""
+import sys, io, base64, json
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as _plt_orig
+_fig_b64 = None
+
+def _capture_show():
+    global _fig_b64
+    buf = io.BytesIO()
+    _plt_orig.savefig(buf, format="png", dpi=130, bbox_inches="tight",
+                      facecolor=_plt_orig.gcf().get_facecolor())
+    _plt_orig.close()
+    buf.seek(0)
+    _fig_b64 = base64.b64encode(buf.read()).decode()
+
+import matplotlib.pyplot as plt
+plt.show = _capture_show
+
+# ─── CÓDIGO DO USUÁRIO ───
+{codigo}
+# ─────────────────────────
+
+# Se gerou figura mas não chamou show, captura
+if _plt_orig.get_fignums() and _fig_b64 is None:
+    _capture_show()
+
+print("__FIG__:" + (_fig_b64 or ""), file=sys.stderr)
+""")
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", wrapper],
+            capture_output=True, text=True, timeout=EXEC_TIMEOUT
+        )
+        # Extrai imagem do stderr
+        imagem_b64 = None
+        stderr_lines = []
+        for line in proc.stderr.splitlines():
+            if line.startswith("__FIG__:"):
+                val = line[8:].strip()
+                if val:
+                    imagem_b64 = val
+            else:
+                stderr_lines.append(line)
+
+        return {
+            "stdout": proc.stdout.strip(),
+            "stderr": "\n".join(stderr_lines).strip(),
+            "erro": proc.returncode != 0,
+            "imagem_b64": imagem_b64
+        }
+    except subprocess.TimeoutExpired:
+        return {"stdout": "", "stderr": f"Timeout: execução excedeu {EXEC_TIMEOUT}s", "erro": True, "imagem_b64": None}
+    except Exception as e:
+        return {"stdout": "", "stderr": str(e), "erro": True, "imagem_b64": None}
+
+
+# ── Excel avançado com gráfico ─────────────────────────────────────────────────
+def tool_excel_avancado(titulo, colunas, linhas, grafico_tipo=None, grafico_series=None):
+    """
+    colunas: [str]
+    linhas:  [[valor, ...]]
+    grafico_tipo: "barras" | "linhas" | "pizza" | None
+    grafico_series: índices das colunas numéricas para o gráfico
+    """
+    from openpyxl.chart import BarChart, LineChart, PieChart, Reference, Series as XLSeries
+    from openpyxl.chart.series import DataPoint
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    # Caracteres inválidos em nomes de aba Excel: : \ / ? * [ ]
+    import re as _re
+    titulo_aba = _re.sub(r'[:\\/?*\[\]]', '-', titulo or 'Dados')[:28]
+    ws.title = titulo_aba
+
+    az    = PatternFill("solid", fgColor="1a3a6e")
+    az2   = PatternFill("solid", fgColor="2d5fa3")
+    verde = PatternFill("solid", fgColor="e6faf7")
+    alt   = PatternFill("solid", fgColor="f5f7ff")
+    white = PatternFill("solid", fgColor="FFFFFF")
+    brd   = Border(
+        left=Side(style="thin",   color="d0d8f0"),
+        right=Side(style="thin",  color="d0d8f0"),
+        top=Side(style="thin",    color="d0d8f0"),
+        bottom=Side(style="thin", color="d0d8f0"),
+    )
+
+    ncols = len(colunas)
+
+    # ── Título ──
+    ws.merge_cells(f"A1:{chr(64+ncols)}1")
+    c = ws["A1"]
+    c.value = titulo
+    c.font  = Font(bold=True, color="FFFFFF", size=13)
+    c.fill  = az
+    c.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 26
+
+    ws.merge_cells(f"A2:{chr(64+ncols)}2")
+    c2 = ws["A2"]
+    c2.value = now_str()
+    c2.font  = Font(color="AAAAAA", size=8, italic=True)
+    c2.alignment = Alignment(horizontal="center")
+    ws.row_dimensions[2].height = 14
+
+    # ── Header ──
+    for j, col in enumerate(colunas, 1):
+        c = ws.cell(row=3, column=j, value=col)
+        c.font  = Font(bold=True, color="FFFFFF", size=10)
+        c.fill  = az2
+        c.border = brd
+        c.alignment = Alignment(horizontal="center", wrap_text=True, vertical="center")
+    ws.row_dimensions[3].height = 20
+
+    # ── Dados ──
+    for ri, row in enumerate(linhas):
+        bg = alt if ri % 2 == 0 else white
+        for j, val in enumerate(row[:ncols], 1):
+            # Tenta converter número
+            cell_val = val
+            try:
+                if isinstance(val, str):
+                    v = val.replace(".", "").replace(",", ".")
+                    cell_val = float(v) if "." in val or val.lstrip("-").isdigit() else val
+            except Exception:
+                pass
+            c = ws.cell(row=4+ri, column=j, value=cell_val)
+            c.font   = Font(size=10)
+            c.fill   = bg
+            c.border = brd
+            is_num   = isinstance(cell_val, (int, float))
+            c.alignment = Alignment(
+                horizontal="right" if is_num else "left",
+                wrap_text=True, vertical="center"
+            )
+            if is_num:
+                c.number_format = '#,##0.00'
+        ws.row_dimensions[4+ri].height = 18
+
+    # ── Totais automáticos para colunas numéricas ──
+    tot_row = 4 + len(linhas)
+    ws.merge_cells(f"A{tot_row}:{chr(64+min(2,ncols))}{tot_row}")
+    c = ws[f"A{tot_row}"]
+    c.value = "TOTAL"
+    c.font  = Font(bold=True, color="FFFFFF", size=10)
+    c.fill  = az
+    c.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[tot_row].height = 18
+
+    for j in range(3, ncols+1):
+        # Verifica se coluna é numérica
+        try:
+            vals = [ws.cell(row=4+ri, column=j).value for ri in range(len(linhas))]
+            if all(isinstance(v, (int, float)) for v in vals if v is not None):
+                tc = ws.cell(row=tot_row, column=j)
+                tc.value = f"=SUM({chr(64+j)}4:{chr(64+j)}{tot_row-1})"
+                tc.font  = Font(bold=True, color="FFFFFF", size=10)
+                tc.fill  = az
+                tc.border = brd
+                tc.number_format = '#,##0.00'
+                tc.alignment = Alignment(horizontal="right", vertical="center")
+        except Exception:
+            pass
+
+    # ── Largura das colunas ──
+    from openpyxl.cell.cell import MergedCell
+    for col in ws.columns:
+        ml = 10
+        col_letter = None
+        for c in col:
+            if isinstance(c, MergedCell): continue
+            if col_letter is None:
+                try: col_letter = c.column_letter
+                except: pass
+            try:
+                if c.value: ml = max(ml, len(str(c.value)))
+            except: pass
+        if col_letter:
+            ws.column_dimensions[col_letter].width = min(max(ml + 2, 12), 40)
+
+    # ── Gráfico embutido ──
+    if grafico_tipo and len(linhas) > 0:
+        try:
+            data_row_start = 3  # header na linha 3
+            data_row_end   = 3 + len(linhas)
+            series_cols    = grafico_series or [j for j in range(2, ncols+1)]
+
+            if grafico_tipo == "pizza":
+                chart = PieChart()
+                chart.title = titulo
+                chart.style = 10
+                data   = Reference(ws, min_col=series_cols[0], min_row=data_row_start, max_row=data_row_end)
+                labels = Reference(ws, min_col=1, min_row=4, max_row=data_row_end)
+                chart.add_data(data, titles_from_data=True)
+                chart.set_categories(labels)
+            elif grafico_tipo == "linhas":
+                chart = LineChart()
+                chart.title = titulo
+                chart.style = 10
+                chart.grouping = "standard"
+                for sc in series_cols:
+                    data = Reference(ws, min_col=sc, min_row=data_row_start, max_row=data_row_end)
+                    chart.add_data(data, titles_from_data=True)
+                cats = Reference(ws, min_col=1, min_row=4, max_row=data_row_end)
+                chart.set_categories(cats)
+            else:  # barras (padrão)
+                chart = BarChart()
+                chart.type = "col"
+                chart.title = titulo
+                chart.style = 10
+                chart.grouping = "clustered"
+                for sc in series_cols:
+                    data = Reference(ws, min_col=sc, min_row=data_row_start, max_row=data_row_end)
+                    chart.add_data(data, titles_from_data=True)
+                cats = Reference(ws, min_col=1, min_row=4, max_row=data_row_end)
+                chart.set_categories(cats)
+
+            chart.width  = 16
+            chart.height = 10
+            ws.add_chart(chart, f"A{tot_row + 2}")
+        except Exception:
+            pass  # gráfico opcional — não quebra o arquivo
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf.read()
+
+
+# ── Definição das ferramentas para a API Anthropic ────────────────────────────
+TOOLS = [
+    {
+        "name": "gerar_grafico_barras",
+        "description": "Gera um gráfico de barras bonito. Use quando o usuário pedir gráfico de barras, comparativo de valores, ranking.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "labels":     {"type":"array","items":{"type":"string"},"description":"Nomes das barras"},
+                "valores":    {"type":"array","items":{"type":"number"},"description":"Valores numéricos"},
+                "titulo":     {"type":"string","description":"Título do gráfico"},
+                "xlabel":     {"type":"string","description":"Rótulo eixo X"},
+                "ylabel":     {"type":"string","description":"Rótulo eixo Y"},
+                "horizontal": {"type":"boolean","description":"True para barras horizontais"}
+            },
+            "required": ["labels","valores"]
+        }
+    },
+    {
+        "name": "gerar_grafico_linhas",
+        "description": "Gera gráfico de linhas. Use para séries temporais, evolução ao longo do tempo, tendências.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "series": {
+                    "type":"array",
+                    "description":"Lista de séries",
+                    "items": {
+                        "type":"object",
+                        "properties": {
+                            "nome":   {"type":"string"},
+                            "dados":  {"type":"array","items":{"type":"number"}},
+                            "labels": {"type":"array","items":{"type":"string"}}
+                        },
+                        "required":["nome","dados"]
+                    }
+                },
+                "titulo":  {"type":"string"},
+                "xlabel":  {"type":"string"},
+                "ylabel":  {"type":"string"}
+            },
+            "required": ["series"]
+        }
+    },
+    {
+        "name": "gerar_grafico_pizza",
+        "description": "Gera gráfico de pizza/rosca. Use para mostrar proporções, participação percentual, distribuição.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "labels":  {"type":"array","items":{"type":"string"},"description":"Categorias"},
+                "valores": {"type":"array","items":{"type":"number"},"description":"Valores"},
+                "titulo":  {"type":"string"}
+            },
+            "required": ["labels","valores"]
+        }
+    },
+    {
+        "name": "gerar_grafico_dispersao",
+        "description": "Gera gráfico de dispersão (scatter plot). Use para correlação entre dois valores numéricos.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "series": {
+                    "type":"array",
+                    "items": {
+                        "type":"object",
+                        "properties": {
+                            "nome": {"type":"string"},
+                            "x": {"type":"array","items":{"type":"number"}},
+                            "y": {"type":"array","items":{"type":"number"}}
+                        },
+                        "required":["nome","x","y"]
+                    }
+                },
+                "titulo": {"type":"string"},
+                "xlabel": {"type":"string"},
+                "ylabel": {"type":"string"}
+            },
+            "required": ["series"]
+        }
+    },
+    {
+        "name": "executar_python",
+        "description": "Executa código Python e retorna o resultado. Use quando o usuário pedir para rodar, calcular, processar dados com Python. Pode usar pandas, numpy, matplotlib.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "codigo": {"type":"string","description":"Código Python completo para executar"}
+            },
+            "required": ["codigo"]
+        }
+    },
+    {
+        "name": "gerar_excel_avancado",
+        "description": "Gera planilha Excel profissional com formatação Master e gráfico embutido opcional. Use para tabelas de dados, relatórios, comparativos.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "titulo":         {"type":"string","description":"Título da planilha"},
+                "colunas":        {"type":"array","items":{"type":"string"},"description":"Nomes das colunas"},
+                "linhas":         {"type":"array","items":{"type":"array"},"description":"Linhas de dados"},
+                "grafico_tipo":   {"type":"string","enum":["barras","linhas","pizza"],"description":"Tipo de gráfico embutido (opcional)"},
+                "grafico_series": {"type":"array","items":{"type":"integer"},"description":"Índices (1-based) das colunas numéricas para o gráfico"}
+            },
+            "required": ["titulo","colunas","linhas"]
+        }
     }
-    novoChat();
-    loadChatList();
-  } catch(e) {
-    err.textContent = 'Não foi possível conectar ao servidor.';
-    err.style.display = 'block';
-  }
-}
+]
+
+
+# ── Rota principal: chat com ferramentas ──────────────────────────────────────
+import requests as _requests
+
+@app.route("/chat_tools", methods=["POST"])
+def chat_tools():
+    user = auth(request)
+    if not user:
+        return jsonify({"erro": "Não autenticado"}), 401
+
+    d        = request.get_json()
+    messages = d.get("messages") or []
+    api_key  = d.get("api_key") or ""
+    model    = d.get("model") or "claude-opus-4-7"
+
+    if not api_key:
+        return jsonify({"erro": "api_key obrigatória"}), 400
+    if not messages:
+        return jsonify({"erro": "messages vazio"}), 400
+
+    system = (
+        "Você é o Master IA, assistente especializado em contabilidade, fiscal e tributário brasileiro. "
+        "Responda sempre em português. "
+        "NUNCA faça perguntas ao usuário. NUNCA peça mais detalhes. Sempre responda diretamente com o conteúdo completo. "
+        "Se o usuário pedir um documento, relatório, PDF ou explicação — responda com o conteúdo COMPLETO e DETALHADO em markdown imediatamente. "
+        "Use # para título, ## para seções, ### para subseções, listas e tabelas quando pertinente. "
+        "Use ferramentas (gráfico, Excel, Python) SOMENTE quando o usuário usar palavras como: gráfico, planilha, excel, código, calcule, execute, rode. "
+        "Para todo o resto, responda em texto/markdown direto, sem ferramentas."
+    )
+
+    # Limpa histórico — mantém só mensagens text simples (user/assistant string)
+    # Evita erro 500 por tool_use sem tool_result no histórico
+    msgs_limpos = []
+    for m in messages:
+        role = m.get("role","")
+        content = m.get("content","")
+        if role not in ("user","assistant"):
+            continue
+        if isinstance(content, str) and content.strip():
+            # Remove vazamento de <tool_call> do texto
+            content = content.split("<tool_call>")[0].strip()
+            if content:
+                msgs_limpos.append({"role": role, "content": content})
+        elif isinstance(content, list):
+            # Extrai só os blocos de texto
+            texto = " ".join(b.get("text","") for b in content if b.get("type")=="text").strip()
+            if texto:
+                msgs_limpos.append({"role": role, "content": texto})
+
+    if not msgs_limpos:
+        return jsonify({"erro": "messages vazio"}), 400
+
+    try:
+        resp = _requests.post(
+            "https://api.iacontaai.com.br/v1/messages",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+            },
+            json={
+                "model": model,
+                "max_tokens": 4096,
+                "system": system,
+                "tools": TOOLS,
+                "messages": msgs_limpos,
+            },
+            timeout=120
+        )
+        if not resp.ok:
+            return jsonify({"erro": resp.text}), resp.status_code
+        data = resp.json()
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+    # Processa blocos de resposta
+    result_blocks = []
+    tool_calls_made = []
+
+    for block in data.get("content", []):
+        btype = block.get("type")
+        if btype == "text":
+            result_blocks.append({"tipo": "texto", "conteudo": block.get("text","")})
+
+        elif btype == "tool_use":
+            tool_name  = block.get("name","")
+            tool_input = block.get("input", {})
+            tool_calls_made.append({"nome": tool_name, "input": tool_input})
+
+            try:
+                if tool_name == "gerar_grafico_barras":
+                    img = tool_grafico_barras(
+                        tool_input["labels"], tool_input["valores"],
+                        tool_input.get("titulo",""), tool_input.get("xlabel",""),
+                        tool_input.get("ylabel",""), tool_input.get("horizontal", False)
+                    )
+                    result_blocks.append({"tipo": "imagem", "b64": img,
+                                          "legenda": tool_input.get("titulo","Gráfico")})
+
+                elif tool_name == "gerar_grafico_linhas":
+                    img = tool_grafico_linhas(
+                        tool_input["series"],
+                        tool_input.get("titulo",""), tool_input.get("xlabel",""),
+                        tool_input.get("ylabel","")
+                    )
+                    result_blocks.append({"tipo": "imagem", "b64": img,
+                                          "legenda": tool_input.get("titulo","Gráfico de Linhas")})
+
+                elif tool_name == "gerar_grafico_pizza":
+                    img = tool_grafico_pizza(
+                        tool_input["labels"], tool_input["valores"],
+                        tool_input.get("titulo","")
+                    )
+                    result_blocks.append({"tipo": "imagem", "b64": img,
+                                          "legenda": tool_input.get("titulo","Gráfico de Pizza")})
+
+                elif tool_name == "gerar_grafico_dispersao":
+                    img = tool_grafico_dispersao(
+                        tool_input["series"],
+                        tool_input.get("titulo",""), tool_input.get("xlabel",""),
+                        tool_input.get("ylabel","")
+                    )
+                    result_blocks.append({"tipo": "imagem", "b64": img,
+                                          "legenda": tool_input.get("titulo","Dispersão")})
+
+                elif tool_name == "executar_python":
+                    res = tool_executar_python(tool_input["codigo"])
+                    result_blocks.append({
+                        "tipo": "codigo_resultado",
+                        "codigo": tool_input["codigo"],
+                        "stdout": res["stdout"],
+                        "stderr": res["stderr"],
+                        "erro":   res["erro"],
+                        "imagem_b64": res.get("imagem_b64")
+                    })
+
+                elif tool_name == "gerar_excel_avancado":
+                    xls_bytes = tool_excel_avancado(
+                        tool_input["titulo"],
+                        tool_input["colunas"],
+                        tool_input["linhas"],
+                        tool_input.get("grafico_tipo"),
+                        tool_input.get("grafico_series")
+                    )
+                    xls_b64 = base64.b64encode(xls_bytes).decode()
+                    fname   = safe_name(tool_input["titulo"]) + ".xlsx"
+                    result_blocks.append({"tipo": "excel", "b64": xls_b64,
+                                          "nome": fname,
+                                          "legenda": tool_input["titulo"]})
+                    registrar_evento("documento", user, "excel_avancado")
+
+            except Exception as e:
+                result_blocks.append({"tipo": "erro_ferramenta",
+                                       "ferramenta": tool_name,
+                                       "mensagem": str(e),
+                                       "trace": tb.format_exc()})
+
+    registrar_evento("mensagem", user)
+    return jsonify({"blocos": result_blocks, "stop_reason": data.get("stop_reason","")})
 
-function doLogout(){
-  session = {token:'',nome:'',username:''};
-  localStorage.removeItem('mia_token');
-  localStorage.removeItem('mia_nome');
-  localStorage.removeItem('mia_username');
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('li-pass').value = '';
-}
-
-// ── CHAT LIST COM SERVIDOR ────────────────────────────────────────────────────
-async function loadChatList(){
-  if (!cfg.srv || !session.token) { renderLocalChats(); return; }
-  try {
-    const r = await fetch(cfg.srv + '/chats', {headers:{'X-Token':session.token,'Content-Type':'application/json'}});
-    if (!r.ok) { renderLocalChats(); return; }
-    const chats = await r.json();
-    renderChats(chats);
-  } catch(e) { renderLocalChats(); }
-}
-
-function renderLocalChats(){
-  try {
-    const chats = JSON.parse(localStorage.getItem('mia_chats_' + (session.username||'local')) || '[]');
-    renderChats(chats);
-  } catch { renderChats([]); }
-}
-
-async function saveChat(){
-  if (!cid || msgs.length === 0) return;
-  const titulo = document.getElementById('ct').textContent || 'Conversa';
-  const chat = {id:cid, titulo, msgs, updated:Date.now()};
-
-  if (cfg.srv && session.token) {
-    try {
-      await fetch(cfg.srv + '/chats', {
-        method:'POST', headers:{'X-Token':session.token,'Content-Type':'application/json'},
-        body: JSON.stringify(chat)
-      });
-    } catch(e) {}
-  } else {
-    // Fallback localStorage
-    const key = 'mia_chats_' + (session.username||'local');
-    const chats = JSON.parse(localStorage.getItem(key)||'[]');
-    const idx = chats.findIndex(c=>c.id===cid);
-    if (idx>=0) chats[idx]=chat; else chats.push(chat);
-    localStorage.setItem(key, JSON.stringify(chats));
-  }
-  loadChatList();
-}
-
-async function loadChat(id){
-  if (cfg.srv && session.token) {
-    try {
-      const r = await fetch(cfg.srv + '/chats/' + id, {headers:{'X-Token':session.token,'Content-Type':'application/json'}});
-      if (r.ok) {
-        const chat = await r.json();
-        cid = id; msgs = chat.msgs||[];
-        document.getElementById('ct').textContent = chat.titulo;
-        document.getElementById('msgs').innerHTML='';
-        msgs.forEach(m=>addMsg(m.role==='user'?'u':'a', m.content, false));
-        renderChats(null);
-        return;
-      }
-    } catch(e) {}
-  }
-  // Fallback localStorage
-  const key = 'mia_chats_' + (session.username||'local');
-  const chats = JSON.parse(localStorage.getItem(key)||'[]');
-  const chat = chats.find(c=>c.id===id);
-  if (!chat) return;
-  cid=id; msgs=chat.msgs||[];
-  document.getElementById('ct').textContent=chat.titulo;
-  document.getElementById('msgs').innerHTML='';
-  msgs.forEach(m=>addMsg(m.role==='user'?'u':'a',m.content,false));
-  renderChats(null);
-}
-
-async function delChat(e,id){
-  e.stopPropagation();
-  if (cfg.srv && session.token) {
-    try { await fetch(cfg.srv+'/chats/'+id,{method:'DELETE',headers:{'X-Token':session.token,'Content-Type':'application/json'}}); } catch(e){}
-  } else {
-    const key='mia_chats_'+(session.username||'local');
-    const chats=JSON.parse(localStorage.getItem(key)||'[]').filter(c=>c.id!==id);
-    localStorage.setItem(key,JSON.stringify(chats));
-  }
-  if(cid===id) novoChat(); else loadChatList();
-}
-
-// ── BUSCA DE CHATS ────────────────────────────────────────────────────────────
-let _todosChats = [];
-let _termoBusca = '';
-
-function filtrarChats(termo) {
-  _termoBusca = termo.trim().toLowerCase();
-  if (!_termoBusca) {
-    renderChats(_todosChats);
-    return;
-  }
-  const filtrados = _todosChats.filter(c => {
-    const noTitulo = (c.titulo||'').toLowerCase().includes(_termoBusca);
-    const noConteudo = (c.msgs||[]).some(m =>
-      (typeof m.content === 'string' ? m.content : '').toLowerCase().includes(_termoBusca)
-    );
-    return noTitulo || noConteudo;
-  });
-  renderChats(filtrados, _termoBusca);
-}
-
-function highlight(txt, termo) {
-  if (!termo) return esc(txt);
-  const re = new RegExp('(' + termo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
-  return esc(txt).replace(re, '<mark>$1</mark>');
-}
-
-function renderChats(chats, termo=''){
-  _todosChats = chats || _todosChats;
-  if (chats === null) { loadChatList(); return; }
-  const list = document.getElementById('cl');
-  if (!chats || chats.length===0){
-    list.innerHTML=`<div style="padding:12px 10px;font-size:11px;color:var(--text2);text-align:center">${_termoBusca ? 'Nenhum resultado' : 'Nenhuma conversa ainda'}</div>`;
-    return;
-  }
-  const sorted = termo ? chats : [...chats].sort((a,b)=>(b.updated||0)-(a.updated||0));
-
-  // Snippet de contexto para busca no conteúdo
-  function snippet(c) {
-    if (!termo) return '';
-    const msg = (c.msgs||[]).find(m =>
-      (typeof m.content === 'string' ? m.content : '').toLowerCase().includes(termo)
-    );
-    if (!msg || typeof msg.content !== 'string') return '';
-    const idx = msg.content.toLowerCase().indexOf(termo);
-    const start = Math.max(0, idx - 20);
-    const trecho = msg.content.slice(start, idx + termo.length + 30);
-    return `<div style="font-size:10px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${highlight(trecho, termo)}</div>`;
-  }
-
-  list.innerHTML = sorted.map(c=>`
-    <div class="ci ${c.id===cid?'on':''}" onclick="loadChat('${c.id}')">
-      <div style="flex:1;overflow:hidden">
-        <div class="ci-t">${highlight(c.titulo||'Sem título', termo)}</div>
-        ${snippet(c)}
-      </div>
-      <span class="ci-d">${fd(c.updated||0)}</span>
-      <button class="ci-x" onclick="delChat(event,'${c.id}')">✕</button>
-    </div>`).join('');
-}
-
-
-
-// ── ARQUIVO ANEXADO ─────────────────────────────────────────────────────────
-let attachedFile = null;
-let attachedFileData = null;
-
-function onDrop(event) {
-  event.preventDefault();
-  document.getElementById('drop-zone').style.borderColor = '';
-  const file = event.dataTransfer.files[0];
-  if (file) processFile(file);
-}
-
-function onFileSelected(event) {
-  const file = event.target.files[0];
-  if (file) processFile(file);
-}
-
-function processFile(file) {
-  attachedFile = file;
-  const ext = file.name.split('.').pop().toLowerCase();
-  document.getElementById('file-name').textContent = '📄 ' + file.name;
-  document.getElementById('file-preview').style.display = 'flex';
-
-  if (['xlsx','xls'].includes(ext)) {
-    // Excel: converte para CSV usando SheetJS
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        // Tenta usar SheetJS se disponível
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, {type: 'array'});
-        let csvAll = '';
-        workbook.SheetNames.forEach(name => {
-          const ws = workbook.Sheets[name];
-          const csv = XLSX.utils.sheet_to_csv(ws);
-          csvAll += `=== Aba: ${name} ===\n${csv}\n\n`;
-        });
-        attachedFileData = btoa(unescape(encodeURIComponent(csvAll)));
-        attachedFile = new File([csvAll], file.name.replace(/\.xlsx?$/, '.csv'), {type:'text/csv'});
-        document.getElementById('file-name').textContent = '📊 ' + file.name + ' (convertido)';
-      } catch(e) {
-        // Fallback base64
-        const b64 = btoa(String.fromCharCode(...new Uint8Array(e.target.result)));
-        attachedFileData = b64;
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  } else {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      attachedFileData = e.target.result.split(',')[1];
-    };
-    reader.readAsDataURL(file);
-  }
-}
-
-function clearFile() {
-  attachedFile = null;
-  attachedFileData = null;
-  document.getElementById('file-input').value = '';
-  document.getElementById('file-preview').style.display = 'none';
-}
-
-function sg(t){document.getElementById('inp').value=t;send();}
-function hk(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
-function ar(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px';}
-
-async function send(){
-  if(busy) return;
-  const inp=document.getElementById('inp');
-  const text=inp.value.trim(); if(!text) return;
-  if(!cfg.key){document.getElementById('cfg').classList.add('on');document.getElementById('nk').style.display='block';return;}
-  if(!cid) cid='c_'+Date.now();
-
-  // Monta conteúdo com ou sem arquivo
-  let apiContent;
-  if (attachedFile && attachedFileData) {
-    const ext = attachedFile.name.split('.').pop().toLowerCase();
-    if (ext === 'pdf') {
-      apiContent = [
-        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: attachedFileData } },
-        { type: 'text', text: text || 'Analise este documento.' }
-      ];
-    } else if (ext === 'txt' || ext === 'csv') {
-      try {
-        const decoded = decodeURIComponent(escape(atob(attachedFileData)));
-        apiContent = text + '\n\n--- Conteúdo: ' + attachedFile.name + ' ---\n' + decoded;
-      } catch(e) {
-        apiContent = text + '\n\n[Arquivo: ' + attachedFile.name + ']';
-      }
-    } else {
-      apiContent = text + '\n\n[Arquivo: ' + attachedFile.name + ']';
-    }
-    clearFile();
-  } else {
-    apiContent = text;
-  }
-
-  msgs.push({role:'user', content: apiContent});
-  addMsg('u', text, false);
-  inp.value=''; inp.style.height='auto';
-  if(msgs.length===1){
-    const t=text.length>48?text.substring(0,48)+'…':text;
-    document.getElementById('ct').textContent=t;
-  }
-  busy=true; document.getElementById('sbtn').disabled=true; addTyping();
-
-  // ── Decide modo: tools (via servidor) ou streaming direto ──────────────────
-  const usarTools = !!(cfg.srv && session.token);
-
-  if (usarTools) {
-    await _sendTools(apiContent);
-  } else {
-    await _sendStreaming(apiContent);
-  }
-
-  busy=false; document.getElementById('sbtn').disabled=false;
-  document.getElementById('inp').focus();
-}
-
-async function _sendTools(apiContent) {
-  try {
-    const r = await fetch(cfg.srv + '/chat_tools', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Token':session.token},
-      body: JSON.stringify({
-        api_key:  cfg.key,
-        model:    cfg.model,
-        messages: msgs
-      })
-    });
-    document.getElementById('ty')?.remove();
-    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.erro||'Erro '+r.status);}
-    const data = await r.json();
-    const blocos = data.blocos || [];
-
-    // Renderiza blocos
-    const msgsEl = document.getElementById('msgs');
-    document.getElementById('wlc')?.remove();
-    const d = document.createElement('div'); d.className='msg a';
-    const msgId = 'm_'+Date.now();
-    const htmlBlocos = renderBlocos(blocos, msgId);
-    const textoPlano = blocos.filter(b=>b.tipo==='texto')
-      .map(b=>b.conteudo.split('<tool_call>')[0].trim())
-      .filter(Boolean).join('\n\n');
-
-    d.innerHTML = `<div class="av">✦</div><div class="mc" id="${msgId}" data-markdown="${textoPlano.replace(/"/g,'&quot;')}">${htmlBlocos}
-      <div class="acts">
-        <button class="ba" onclick="copiarTexto(${JSON.stringify(textoPlano)},this)">📋 Copiar</button>
-        <button class="ba" onclick="gerarDoc('${msgId}','pdf',this)">📄 PDF</button>
-        <button class="ba" onclick="gerarDoc('${msgId}','word',this)">📝 Word</button>
-      </div>
-    </div>`;
-    msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight;
-
-    // Salva resposta textual no histórico — limpo
-    if (textoPlano) msgs.push({role:'assistant', content: textoPlano});
-    saveChat();
-
-  } catch(e) {
-    document.getElementById('ty')?.remove();
-    const d=document.createElement('div'); d.className='err'; d.textContent='⚠ '+e.message;
-    document.getElementById('msgs').appendChild(d);
-    msgs.pop();
-  }
-}
-
-async function _sendStreaming(apiContent) {
-  const instrucao = '[IMPORTANTE: Responda em texto corrido com markdown. NÃO use código Python, bash ou ferramentas. NÃO execute scripts. Apenas escreva a resposta diretamente em português.] ';
-  const msgParaApi = {role:'user', content: instrucao + (typeof apiContent==='string' ? apiContent : JSON.stringify(apiContent))};
-
-  try{
-    const r=await fetch(`${APIURL}/v1/messages`,{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':cfg.key,
-        'Authorization':'Bearer '+cfg.key,
-        'anthropic-version':'2023-06-01',
-      },
-      body:JSON.stringify({
-        model:cfg.model,
-        max_tokens:4096,
-        stream:true,
-        messages:[...msgs.slice(0,-1), msgParaApi]
-      })
-    });
-
-    document.getElementById('ty')?.remove();
-    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error?.message||'Erro '+r.status);}
-
-    document.getElementById('wlc')?.remove();
-    const msgsEl=document.getElementById('msgs');
-    const d=document.createElement('div'); d.className='msg a'; d.id='msg-stream';
-    const msgId='m_'+Date.now()+'_stream';
-    d.innerHTML=`<div class="av">✦</div><div class="mc" id="${msgId}"><span id="stream-text"></span><span class="stream-cursor"></span></div>`;
-    msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight;
-
-    const reader=r.body.getReader();
-    const decoder=new TextDecoder();
-    let fullText='', buffer='';
-
-    while(true){
-      const {done,value}=await reader.read();
-      if(done) break;
-      buffer+=decoder.decode(value,{stream:true});
-      const lines=buffer.split('\n');
-      buffer=lines.pop();
-      for(const line of lines){
-        if(!line.startsWith('data: ')) continue;
-        const raw=line.slice(6).trim();
-        if(raw==='[DONE]') break;
-        try{
-          const ev=JSON.parse(raw);
-          if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){
-            fullText+=ev.delta.text;
-            document.getElementById('stream-text').innerHTML=fmt(fullText);
-            msgsEl.scrollTop=msgsEl.scrollHeight;
-          }
-        }catch(_){}
-      }
-    }
-
-    const bubble=document.getElementById(msgId);
-    if(bubble){
-      bubble.querySelector('.stream-cursor')?.remove();
-      bubble.dataset.markdown = fullText;
-      bubble.innerHTML=fmt(fullText)+`<div class="acts">
-        <button class="ba" onclick="copiar('${msgId}',this)">📋 Copiar</button>
-        <button class="ba" onclick="gerarDoc('${msgId}','pdf',this)">📄 PDF</button>
-        <button class="ba" onclick="gerarDoc('${msgId}','word',this)">📝 Word</button>
-        <button class="ba" onclick="gerarDoc('${msgId}','excel',this)">📊 Excel</button>
-      </div>`;
-    }
-    document.getElementById('msg-stream')?.removeAttribute('id');
-    msgs.push({role:'assistant',content:fullText});
-    saveChat();
-
-  }catch(e){
-    document.getElementById('ty')?.remove();
-    document.getElementById('msg-stream')?.remove();
-    const d=document.createElement('div'); d.className='err'; d.textContent='⚠ '+e.message;
-    document.getElementById('msgs').appendChild(d);
-    msgs.pop();
-  }
-}
-
-// ── NAVEGAÇÃO DE MÓDULOS ─────────────────────────────────────────────────────
-let moduloAtivo = 'chat';
-
-function mostrarModulo(mod, btn) {
-  moduloAtivo = mod;
-  // Atualiza botões
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-
-  // Esconde/mostra painéis laterais
-  const paineis = ['painel-dash','painel-comp','painel-admin'];
-  paineis.forEach(p => {
-    const el = document.getElementById(p);
-    if (el) { el.classList.remove('on'); el.style.display = 'none'; }
-  });
-  document.getElementById('cl').style.display = 'none';
-  document.getElementById('sb-label').style.display = 'none';
-  document.getElementById('sb-search-box').style.display = 'none';
-
-  // Esconde/mostra área de chat principal
-  const main = document.getElementById('main');
-  if (mod === 'chat') {
-    document.getElementById('cl').style.display = '';
-    document.getElementById('sb-label').style.display = '';
-    document.getElementById('sb-search-box').style.display = '';
-    // mostra área de chat
-    document.querySelector('#main > header').style.display = '';
-    document.getElementById('cfg').style.display = '';
-    document.getElementById('nk').style.display = cfg.key ? 'none' : 'block';
-    document.getElementById('msgs').style.display = '';
-    document.querySelector('.iarea').style.display = '';
-    return;
-  }
-
-  // Esconde área de chat
-  document.querySelector('#main > header').style.display = 'none';
-  document.getElementById('cfg').style.display = 'none';
-  document.getElementById('nk').style.display = 'none';
-  document.getElementById('msgs').style.display = 'none';
-  document.querySelector('.iarea').style.display = 'none';
-
-  const painel = document.getElementById('painel-' + mod);
-  if (painel) { painel.style.display = 'flex'; painel.classList.add('on'); }
-
-  if (mod === 'dash') carregarDashboard();
-  if (mod === 'admin') carregarAdmin();
-}
-
-// ── DASHBOARD ────────────────────────────────────────────────────────────────
-async function carregarDashboard() {
-  if (!cfg.srv || !session.token) {
-    document.getElementById('dash-usuarios').innerHTML = '<div style="font-size:11px;color:var(--text2)">Configure o servidor para ver os dados.</div>';
-    return;
-  }
-  try {
-    const r = await fetch(cfg.srv + '/dashboard/stats', {
-      headers: {'X-Token': session.token}
-    });
-    if (!r.ok) throw new Error('Erro ' + r.status);
-    const d = await r.json();
-
-    // KPIs
-    document.getElementById('kpi-msgs').textContent   = d.totais.mensagens;
-    document.getElementById('kpi-docs').textContent   = d.totais.documentos;
-    document.getElementById('kpi-users').textContent  = d.totais.usuarios_ativos;
-    document.getElementById('kpi-logins').textContent = d.totais.logins;
-
-    // Barras por usuário
-    const maxU = Math.max(...d.uso_usuario.map(u => u.total), 1);
-    document.getElementById('dash-usuarios').innerHTML = d.uso_usuario.length === 0
-      ? '<div style="font-size:10px;color:var(--text2)">Nenhuma mensagem registrada ainda.</div>'
-      : d.uso_usuario.map(u => `
-        <div class="bar-row">
-          <div class="bar-lbl">${esc(u.nome)}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(u.total/maxU*100)}%"></div></div>
-          <div class="bar-val">${u.total}</div>
-        </div>`).join('');
-
-    // Gráfico de linha (barras verticais)
-    const maxA = Math.max(...d.atividade.map(a => Math.max(a.mensagens, a.documentos)), 1);
-    document.getElementById('dash-chart').innerHTML = d.atividade.map(a => `
-      <div class="chart-col">
-        <div style="display:flex;gap:1px;align-items:flex-end;height:40px">
-          <div class="chart-bar" style="height:${Math.round(a.mensagens/maxA*38)+2}px;width:8px"></div>
-          <div class="chart-bar doc" style="height:${Math.round(a.documentos/maxA*38)+2}px;width:8px"></div>
-        </div>
-        <div class="chart-lbl">${a.data}</div>
-      </div>`).join('');
-
-    // Documentos por tipo
-    const maxD = Math.max(...d.docs_tipo.map(t => t.total), 1);
-    const docHtml = d.docs_tipo.length === 0
-      ? '<div style="font-size:10px;color:var(--text2)">Nenhum documento gerado ainda.</div>'
-      : d.docs_tipo.map(t => `
-          <div class="bar-row">
-            <div class="bar-lbl">${esc(t.tipo)}</div>
-            <div class="bar-track"><div class="bar-fill" style="width:${Math.round(t.total/maxD*100)}%;background:var(--accent2)"></div></div>
-            <div class="bar-val">${t.total}</div>
-          </div>`).join('');
-    document.getElementById('dash-docs').innerHTML = docHtml;
-
-    // Últimas ações (só admin vê)
-    if (d.is_admin && d.ultimos && d.ultimos.length > 0) {
-      document.getElementById('dash-log').innerHTML = d.ultimos.map(e => `
-        <div class="log-item">
-          <span class="log-tipo">${e.tipo}</span>
-          <span class="log-usr">${esc(e.usuario)}</span>
-          <span>${esc(e.detalhe||'')}</span>
-          <span class="log-ts">${e.ts}</span>
-        </div>`).join('');
-      document.getElementById('dash-log-card').style.display = '';
-    } else {
-      document.getElementById('dash-log-card').style.display = 'none';
-    }
-  } catch(e) {
-    document.getElementById('dash-usuarios').innerHTML = `<div style="font-size:11px;color:var(--danger)">${e.message}</div>`;
-  }
-}
-
-// ── COMPARATIVO ───────────────────────────────────────────────────────────────
-async function gerarComparativo() {
-  const dadosA = document.getElementById('comp-dados-a').value.trim();
-  const dadosB = document.getElementById('comp-dados-b').value.trim();
-  const labelA = document.getElementById('comp-label-a').value.trim() || 'Sistema A';
-  const labelB = document.getElementById('comp-label-b').value.trim() || 'Sistema B';
-
-  if (!dadosA || !dadosB) { alert('Preencha os dados dos dois sistemas.'); return; }
-  if (!cfg.srv || !session.token) { alert('Servidor não configurado.'); return; }
-
-  const btn = document.getElementById('btn-comp');
-  const status = document.getElementById('comp-status');
-  btn.disabled = true; btn.textContent = '⏳ Gerando...';
-  status.style.display = 'none';
-
-  try {
-    const r = await fetch(cfg.srv + '/comparativo', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','X-Token':session.token},
-      body: JSON.stringify({dados_a:dadosA, dados_b:dadosB, label_a:labelA, label_b:labelB})
-    });
-    if (!r.ok) throw new Error('Erro ' + r.status);
-    const blob = await r.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Comparativo_${labelA}_${labelB}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
-    status.textContent = '✅ Arquivo gerado e baixado!';
-    status.style.color = 'var(--ok)';
-    status.style.display = 'block';
-  } catch(e) {
-    status.textContent = '⚠ ' + e.message;
-    status.style.color = 'var(--danger)';
-    status.style.display = 'block';
-  }
-  btn.disabled = false; btn.textContent = '⚖ Gerar Comparativo Excel';
-}
-
-// ── ADMIN ─────────────────────────────────────────────────────────────────────
-async function carregarAdmin() {
-  if (!cfg.srv || !session.token) return;
-  try {
-    const r = await fetch(cfg.srv + '/admin/listar', {headers:{'X-Token':session.token}});
-    if (!r.ok) {
-      document.getElementById('admin-lista').innerHTML = '<div style="font-size:11px;color:var(--danger)">Acesso negado. Somente admin.</div>';
-      return;
-    }
-    const lista = await r.json();
-    document.getElementById('admin-lista').innerHTML = lista.map(u => `
-      <div class="admin-user">
-        <div>
-          <div class="admin-nome">${esc(u.nome)}</div>
-          <span>${esc(u.username)} ${u.tem_token ? '· 🟢 online' : ''}</span>
-        </div>
-        <div class="admin-acts">
-          <button class="btn-admin" onclick="adminResetar('${esc(u.username)}','${esc(u.nome)}')">🔑 Resetar</button>
-          ${u.username !== 'italo' ? `<button class="btn-admin danger" onclick="adminRemover('${esc(u.username)}')">🗑</button>` : ''}
-        </div>
-      </div>`).join('');
-  } catch(e) {
-    document.getElementById('admin-lista').innerHTML = `<div style="font-size:11px;color:var(--danger)">${e.message}</div>`;
-  }
-}
-
-async function adminResetar(username, nome) {
-  const nova = prompt(`Nova senha para ${nome}:`, 'master123');
-  if (!nova) return;
-  const r = await fetch(cfg.srv + '/admin/resetar_senha', {
-    method:'POST', headers:{'Content-Type':'application/json','X-Token':session.token},
-    body: JSON.stringify({username, nova_senha: nova})
-  });
-  if (r.ok) { alert('✅ Senha redefinida para ' + nome); }
-  else { alert('Erro ao redefinir senha.'); }
-}
-
-async function adminRemover(username) {
-  if (!confirm(`Remover o usuário "${username}"? Esta ação não pode ser desfeita.`)) return;
-  const r = await fetch(cfg.srv + '/admin/remover', {
-    method:'POST', headers:{'Content-Type':'application/json','X-Token':session.token},
-    body: JSON.stringify({username})
-  });
-  if (r.ok) { carregarAdmin(); }
-  else { alert('Erro ao remover usuário.'); }
-}
-
-async function adminAdicionar() {
-  const username = document.getElementById('adm-user').value.trim().toLowerCase();
-  const nome     = document.getElementById('adm-nome').value.trim();
-  const senha    = document.getElementById('adm-senha').value.trim() || 'master123';
-  if (!username || !nome) { alert('Preencha username e nome.'); return; }
-  const r = await fetch(cfg.srv + '/admin/adicionar', {
-    method:'POST', headers:{'Content-Type':'application/json','X-Token':session.token},
-    body: JSON.stringify({username, nome, senha})
-  });
-  const d = await r.json();
-  if (r.ok) {
-    document.getElementById('adm-user').value = '';
-    document.getElementById('adm-nome').value = '';
-    document.getElementById('adm-senha').value = '';
-    carregarAdmin();
-    alert('✅ Usuário criado!');
-  } else { alert('Erro: ' + (d.erro||'desconhecido')); }
-}
-
-// ── RENDERIZAÇÃO DE BLOCOS DE FERRAMENTA ─────────────────────────────────────
-
-function syntaxHL(code) {
-  // Highlight básico Python/JS
-  return code
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/(#.*$)/gm,             '<span class="cm">$1</span>')
-    .replace(/\b(def|class|import|from|return|if|else|elif|for|while|in|not|and|or|True|False|None|try|except|with|as|pass|break|continue|lambda|yield|raise|del|global|nonlocal|async|await)\b/g,'<span class="kw">$1</span>')
-    .replace(/\b([A-Z][A-Za-z0-9_]*)\b/g,'<span class="nm">$1</span>')
-    .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g,'<span class="st">$1</span>')
-    .replace(/\b(\d+\.?\d*)\b/g,'<span class="nm">$1</span>');
-}
-
-function renderBlocos(blocos, msgId) {
-  let html = '';
-  for (const b of blocos) {
-    if (b.tipo === 'texto') {
-      const textoLimpo = b.conteudo.split('<tool_call>')[0].trim();
-      if (textoLimpo) html += `<div class="tool-block">${fmt(textoLimpo)}</div>`;
-
-    } else if (b.tipo === 'imagem') {
-      html += `
-        <div class="tool-block tool-img-wrap">
-          <img class="tool-img" src="data:image/png;base64,${b.b64}"
-               alt="${esc(b.legenda||'Gráfico')}"
-               onclick="abrirLightbox(this.src)">
-          <button class="tool-img-dl" onclick="dlImagem('${b.b64}','${esc(b.legenda||'grafico')}')">⬇ Baixar</button>
-          ${b.legenda ? `<div class="tool-img-legend">${esc(b.legenda)}</div>` : ''}
-        </div>`;
-
-    } else if (b.tipo === 'codigo_resultado') {
-      const hlCode = syntaxHL(b.codigo);
-      html += `
-        <div class="tool-block">
-          <div class="code-block">
-            <div class="code-header">
-              <span class="code-lang">Python</span>
-              <button class="code-copy" onclick="copiarTexto(${JSON.stringify(b.codigo)},this)">📋 Copiar</button>
-            </div>
-            <div class="code-body">${hlCode}</div>
-            ${b.stdout || b.stderr || b.imagem_b64 ? `
-            <div class="exec-result">
-              ${b.stdout ? `<div class="exec-label">Saída</div><div class="exec-out">${esc(b.stdout)}</div>` : ''}
-              ${b.stderr && !b.imagem_b64 ? `<div class="exec-label" style="color:var(--danger)">Erro</div><div class="exec-err">${esc(b.stderr)}</div>` : ''}
-              ${b.imagem_b64 ? `<div class="tool-img-wrap" style="margin-top:8px">
-                <img class="tool-img" src="data:image/png;base64,${b.imagem_b64}" onclick="abrirLightbox(this.src)">
-                <button class="tool-img-dl" onclick="dlImagem('${b.imagem_b64}','resultado')">⬇ Baixar</button>
-              </div>` : ''}
-            </div>` : ''}
-          </div>
-        </div>`;
-
-    } else if (b.tipo === 'excel') {
-      html += `
-        <div class="tool-block">
-          <div class="excel-block">
-            <div class="excel-icon">📊</div>
-            <div class="excel-info">
-              <div class="excel-nome">${esc(b.legenda||b.nome)}</div>
-              <div class="excel-sub">Planilha Excel com formatação Master</div>
-            </div>
-            <button class="excel-dl" onclick="dlExcel('${b.b64}','${esc(b.nome)}')">⬇ Baixar</button>
-          </div>
-        </div>`;
-
-    } else if (b.tipo === 'erro_ferramenta') {
-      html += `
-        <div class="tool-block">
-          <div style="background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.25);border-radius:7px;padding:9px 12px;font-size:12px;color:#ff8fa3">
-            ⚠ Erro em <strong>${esc(b.ferramenta)}</strong>: ${esc(b.mensagem)}
-          </div>
-        </div>`;
-    }
-  }
-  return html;
-}
-
-function abrirLightbox(src) {
-  document.getElementById('lb-img').src = src;
-  document.getElementById('lightbox').classList.add('on');
-}
-
-function dlImagem(b64, nome) {
-  const a = document.createElement('a');
-  a.href     = 'data:image/png;base64,' + b64;
-  a.download = (nome||'grafico').replace(/\s+/g,'_') + '.png';
-  a.click();
-}
-
-function dlExcel(b64, nome) {
-  const bin = atob(b64);
-  const arr = new Uint8Array(bin.length);
-  for (let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
-  const blob = new Blob([arr],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = nome; a.click();
-  URL.revokeObjectURL(url);
-}
-
-function copiarTexto(texto, btn) {
-  navigator.clipboard.writeText(texto).then(()=>{
-    const orig = btn.textContent;
-    btn.textContent='✅ Copiado!';
-    setTimeout(()=>btn.textContent=orig, 2000);
-  });
-}
-
-// ── SEND COM TOOLS (substitui send anterior) ─────────────────────────────────
-// INIT
-(function(){
-  document.getElementById('ck').value=cfg.key;
-  document.getElementById('cs').value=cfg.srv;
-  document.getElementById('cm').value=cfg.model;
-  document.getElementById('mb').textContent=cfg.model;
-  if(!cfg.key) document.getElementById('nk').style.display='block';
-
-  // Mostra servidor na tela de login
-  const srvEl = document.getElementById('li-srv');
-  if (srvEl) srvEl.textContent = cfg.srv || 'não configurado';
-
-  // Tenta restaurar sessão salva
-  const tok = localStorage.getItem('mia_token');
-  const nom = localStorage.getItem('mia_nome');
-  const usr = localStorage.getItem('mia_username');
-  // Restaura sessão em memória imediatamente
-  if (tok && nom) {
-    session = {token: tok, nome: nom, username: usr||''};
-  }
-  if (tok && nom && cfg.srv) {
-    fetch(cfg.srv + '/chats', {headers:{'X-Token': tok, 'Content-Type':'application/json'}})
-      .then(r => {
-        if (r.ok) {
-          session = {token: tok, nome: nom, username: usr||''};
-          document.getElementById('login-screen').style.display = 'none';
-          document.getElementById('user-display').textContent = nom;
-          if ((usr||'') === 'italo') document.getElementById('nav-admin').style.display = '';
-          novoChat();
-          loadChatList();
-        } else { showLogin(); }
-      })
-      .catch(() => { showLogin(); });
-  } else {
-    showLogin();
-  }
-})();
-
-function showLogin() {
-  document.getElementById('login-screen').style.display = 'flex';
-}
-</script>
-</body>
-</html>
