@@ -548,14 +548,21 @@ def gen_excel(titulo, content):
     mset(row, f"Gerado por Master IA · {now_str()}", f_rod,
          align=Alignment(horizontal="center"))
 
-    # Largura automática
+    # Largura automática — ignora células mescladas
+    from openpyxl.cell.cell import MergedCell
     for col in ws.columns:
         ml = 10
+        col_letter = None
         for c in col:
+            if isinstance(c, MergedCell): continue
+            if col_letter is None:
+                try: col_letter = c.column_letter
+                except: pass
             try:
                 if c.value: ml = max(ml, len(str(c.value)))
             except: pass
-        ws.column_dimensions[col[0].column_letter].width = min(max(ml + 2, 12), 55)
+        if col_letter:
+            ws.column_dimensions[col_letter].width = min(max(ml + 2, 12), 55)
 
     # Altura das linhas
     ws.row_dimensions[1].height = 22
