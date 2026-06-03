@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Master IA</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#0f1117;--surface:#181c26;--surface2:#1e2330;--border:#2a3045;--accent:#3d7eff;--accent2:#00c2a8;--text:#e8eaf0;--text2:#8892a4;--user:#1e3a6e;--ai:#1a1e2a;--danger:#ff4d6d;--ok:#00c2a8;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -207,7 +208,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
       <span id="file-name">📄 arquivo.pdf</span>
       <button onclick="clearFile()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px">✕</button>
     </div>
-    <div class="iw">
+    <div class="iw" id="drop-zone"
+      ondragover="event.preventDefault();this.style.borderColor='var(--accent2)'"
+      ondragleave="this.style.borderColor=''"
+      ondrop="onDrop(event)">
       <input type="file" id="file-input" accept=".pdf,.xlsx,.xls,.csv,.txt,.docx" style="display:none" onchange="onFileSelected(event)">
       <button onclick="document.getElementById('file-input').click()" title="Anexar arquivo"
         style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:0 4px;transition:color .2s;flex-shrink:0"
@@ -576,19 +580,55 @@ function renderChats(chats){
 let attachedFile = null;
 let attachedFileData = null;
 
+function onDrop(event) {
+  event.preventDefault();
+  document.getElementById('drop-zone').style.borderColor = '';
+  const file = event.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+
 function onFileSelected(event) {
   const file = event.target.files[0];
-  if (!file) return;
-  attachedFile = file;
-  const preview = document.getElementById('file-preview');
-  document.getElementById('file-name').textContent = '📄 ' + file.name;
-  preview.style.display = 'flex';
+  if (file) processFile(file);
+}
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    attachedFileData = e.target.result.split(',')[1]; // base64
-  };
-  reader.readAsDataURL(file);
+function processFile(file) {
+  attachedFile = file;
+  const ext = file.name.split('.').pop().toLowerCase();
+  document.getElementById('file-name').textContent = '📄 ' + file.name;
+  document.getElementById('file-preview').style.display = 'flex';
+
+  if (['xlsx','xls'].includes(ext)) {
+    // Excel: converte para CSV usando SheetJS
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        // Tenta usar SheetJS se disponível
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        let csvAll = '';
+        workbook.SheetNames.forEach(name => {
+          const ws = workbook.Sheets[name];
+          const csv = XLSX.utils.sheet_to_csv(ws);
+          csvAll += `=== Aba: ${name} ===\n${csv}\n\n`;
+        });
+        attachedFileData = btoa(unescape(encodeURIComponent(csvAll)));
+        attachedFile = new File([csvAll], file.name.replace(/\.xlsx?$/, '.csv'), {type:'text/csv'});
+        document.getElementById('file-name').textContent = '📊 ' + file.name + ' (convertido)';
+      } catch(e) {
+        // Fallback base64
+        const b64 = btoa(String.fromCharCode(...new Uint8Array(e.target.result)));
+        attachedFileData = b64;
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      attachedFileData = e.target.result.split(',')[1];
+    };
+    reader.readAsDataURL(file);
+  }
 }
 
 function clearFile() {
