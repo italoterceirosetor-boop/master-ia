@@ -500,18 +500,33 @@ function copiar(id,btn){
   });
 }
 
-async function reformatar(texto, tipo){
-  const inst = tipo==='excel'
-    ? 'Reformate como planilha estruturada com tabelas markdown. Sem introdução conversacional. Comece direto com o conteúdo estruturado.'
-    : 'Reformate como documento profissional estruturado. Use # para título, ## para seções, ### para subseções, - para listas, tabelas markdown para dados. Remova qualquer introdução como "Claro!", "Olá", "Segue abaixo". Comece direto pelo título. Sem despedidas ou perguntas no final.';
+async function reformatar(texto, tipo, temaOriginal=''){
+  // Se o conteúdo é muito curto (resposta introdutória + ferramentas),
+  // pede para a IA gerar o documento completo sobre o tema
+  const textoUtil = texto.replace(/\[Gráfico gerado.*?\]/g,'').replace(/\[Planilha Excel.*?\]/g,'').trim();
+  const muitoCurto = textoUtil.length < 300;
+
+  let inst, system;
+  if (muitoCurto && temaOriginal) {
+    // Gera o documento completo do zero sobre o tema
+    inst = `Crie um documento completo e detalhado sobre: "${temaOriginal}"\n\nUse # para título principal, ## para seções, ### para subseções, - para listas, tabelas markdown para dados comparativos. Seja completo, profissional e detalhado. Comece direto pelo # Título, sem introdução conversacional.`;
+    system = 'Você é um especialista em contabilidade e fiscal brasileiro. Crie documentos profissionais, completos e detalhados em markdown. Responda apenas com o documento, sem explicações ou comentários.';
+  } else if (tipo === 'excel') {
+    inst = 'Reformate como planilha estruturada com tabelas markdown. Sem introdução conversacional. Comece direto com o conteúdo estruturado.';
+    system = 'Você é um formatador de documentos. Reformate o conteúdo recebido sem inventar informações novas. Responda apenas com o documento formatado em markdown, sem explicações.';
+  } else {
+    inst = 'Reformate como documento profissional estruturado. Use # para título, ## para seções, ### para subseções, - para listas, tabelas markdown para dados. Remova qualquer introdução como "Claro!", "Olá", "Segue abaixo". Comece direto pelo título. Sem despedidas ou perguntas no final.';
+    system = 'Você é um formatador de documentos. Reformate o conteúdo recebido sem inventar informações novas. Responda apenas com o documento formatado em markdown, sem explicações.';
+  }
+
   try{
     const r=await fetch(`${APIURL}/v1/messages`,{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':cfg.key,'Authorization':'Bearer '+cfg.key,'anthropic-version':'2023-06-01'},
       body:JSON.stringify({
         model:cfg.model, max_tokens:4096,
-        system:'Você é um formatador de documentos. Reformate o conteúdo recebido sem inventar informações novas. Responda apenas com o documento formatado em markdown, sem explicações.',
-        messages:[{role:'user',content:inst+'\n\n---\n\n'+texto}]
+        system,
+        messages:[{role:'user',content: inst + (muitoCurto ? '' : '\n\n---\n\n'+textoUtil)}]
       })
     });
     if(!r.ok) return texto;
@@ -557,10 +572,19 @@ async function gerarDoc(msgId, tipo, btn){
   const labels={pdf:'📄 PDF',word:'📝 Word',excel:'📊 Excel'};
 
   btn.textContent='⏳ Formatando...'; btn.classList.add('ld'); btn.disabled=true;
-  const conteudo = await reformatar(original, tipo);
 
-  const pl=conteudo.split('\n').find(l=>l.trim());
-  const titulo=(pl||'').startsWith('#')?(pl||'').replace(/^#+\s*/,'').trim():(pl||'').substring(0,60).trim()||'Documento';
+  // Pega o tema da última mensagem do usuário para contexto
+  const ultimaMsg = msgs.filter(m=>m.role==='user').slice(-1)[0];
+  const temaOriginal = typeof ultimaMsg?.content === 'string' ? ultimaMsg.content : '';
+
+  const conteudo = await reformatar(original, tipo, temaOriginal);
+
+  // Extrai título da primeira linha # do conteúdo gerado
+  const linhas = conteudo.split('\n');
+  const linhaTitulo = linhas.find(l => l.trim().startsWith('#'));
+  const titulo = linhaTitulo
+    ? linhaTitulo.replace(/^#+\s*/, '').trim()
+    : (linhas.find(l=>l.trim()) || '').substring(0, 60).trim() || 'Documento';
 
   if(!cfg.srv){
     btn.textContent=labels[tipo]; btn.classList.remove('ld'); btn.disabled=false;
