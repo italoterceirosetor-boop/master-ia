@@ -974,6 +974,7 @@ async function _sendStreaming(apiContent) {
       headers:{
         'Content-Type':'application/json',
         'x-api-key':cfg.key,
+        'Authorization':'Bearer '+cfg.key,
         'anthropic-version':'2023-06-01',
       },
       body:JSON.stringify({
