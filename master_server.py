@@ -386,7 +386,9 @@ def gen_word(titulo, content):
                 doc.add_paragraph()
             continue
 
-        if line.startswith("# "):
+        if line.startswith("#### "):
+            doc.add_paragraph(line[5:], style="Heading 3")
+        elif line.startswith("# "):
             p = doc.add_paragraph(line[2:], style="Heading 1")
         elif line.startswith("## "):
             p = doc.add_paragraph(line[3:], style="Heading 2")
