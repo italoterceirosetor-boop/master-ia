@@ -615,6 +615,7 @@ def seed_users():
         "trinid":  {"senha": hash_pw("master123"), "nome": "Trinid"},
         "rafael":  {"senha": hash_pw("master123"), "nome": "Rafael"},
         "diogo":   {"senha": hash_pw("master123"), "nome": "Diogo"},
+        "bia":     {"senha": hash_pw("master123"), "nome": "Bia"},
     }
     changed = False
     for u, d in defaults.items():
