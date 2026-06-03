@@ -1379,7 +1379,10 @@ def tool_excel_avancado(titulo, colunas, linhas, grafico_tipo=None, grafico_seri
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = titulo[:28] if titulo else "Dados"
+    # Caracteres inválidos em nomes de aba Excel: : \ / ? * [ ]
+    import re as _re
+    titulo_aba = _re.sub(r'[:\\/?*\[\]]', '-', titulo or 'Dados')[:28]
+    ws.title = titulo_aba
 
     az    = PatternFill("solid", fgColor="1a3a6e")
     az2   = PatternFill("solid", fgColor="2d5fa3")
@@ -1668,11 +1671,10 @@ def chat_tools():
     system = (
         "Você é o Master IA, assistente especializado em contabilidade, fiscal e tributário brasileiro. "
         "Responda sempre em português. "
-        "Quando o usuário pedir gráficos, tabelas, planilhas ou código Python, USE as ferramentas disponíveis — "
-        "não apenas descreva, EXECUTE. "
-        "Para dados fiscais/contábeis, prefira gráficos de barras ou linhas. "
-        "Ao gerar Excel, inclua gráfico quando fizer sentido. "
-        "Para código Python solicitado pelo usuário, execute e mostre o resultado. "
+        "REGRA IMPORTANTE: Use as ferramentas (gráficos, Excel, Python) SOMENTE quando o usuário pedir EXPLICITAMENTE — "
+        "palavras como 'gráfico', 'planilha', 'excel', 'código', 'calcule', 'execute', 'rode'. "
+        "Se o usuário pedir 'PDF', 'documento', 'relatório' ou 'explique', responda em texto/markdown DIRETO, SEM usar ferramentas. "
+        "Para respostas em texto, seja completo, detalhado e bem estruturado com títulos e seções. "
         "Após usar uma ferramenta, comente o resultado brevemente em português."
     )
 
@@ -1784,4 +1786,3 @@ def chat_tools():
 
     registrar_evento("mensagem", user)
     return jsonify({"blocos": result_blocks, "stop_reason": data.get("stop_reason","")})
-
