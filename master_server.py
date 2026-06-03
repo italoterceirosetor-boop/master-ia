@@ -183,9 +183,16 @@ def gen_pdf(titulo, content):
                 col_lens = []
                 for j in range(ncols):
                     max_len = max((len(str(r[j])) if j < len(r) else 0 for r in all_rows), default=10)
-                    col_lens.append(max(max_len, 8))
+                    col_lens.append(max(max_len, 6))
                 total_len = sum(col_lens)
                 col_widths = [W * (cl / total_len) for cl in col_lens]
+
+                # Tabelas largas: fonte menor e padding reduzido
+                is_wide = ncols > 6
+                fsize_hdr  = 7 if is_wide else 9
+                fsize_body = 7 if is_wide else 9
+                pad        = 3 if is_wide else 5
+
                 tdata = [headers] + rows
                 tbl = Table(tdata, colWidths=col_widths, repeatRows=1)
                 tbl.setStyle(TableStyle([
@@ -193,22 +200,23 @@ def gen_pdf(titulo, content):
                     ("BACKGROUND",     (0,0), (-1,0), AZUL2),
                     ("TEXTCOLOR",      (0,0), (-1,0), colors.white),
                     ("FONTNAME",       (0,0), (-1,0), "Helvetica-Bold"),
-                    ("FONTSIZE",       (0,0), (-1,0), 9),
+                    ("FONTSIZE",       (0,0), (-1,0), fsize_hdr),
                     ("ALIGN",          (0,0), (-1,0), "CENTER"),
                     ("LINEBELOW",      (0,0), (-1,0), 2, VERDE),
                     # Body
-                    ("FONTSIZE",       (0,1), (-1,-1), 9),
+                    ("FONTSIZE",       (0,1), (-1,-1), fsize_body),
                     ("TEXTCOLOR",      (0,1), (-1,-1), colors.HexColor("#2c3347")),
                     ("ROWBACKGROUNDS", (0,1), (-1,-1), [CINZA_BG, colors.white]),
                     ("ALIGN",          (0,1), (-1,-1), "CENTER"),
+                    ("WORDWRAP",       (0,0), (-1,-1), True),
                     # Bordas
                     ("GRID",           (0,0), (-1,-1), 0.4, BORDA),
                     ("BOX",            (0,0), (-1,-1), 1, AZUL2),
-                    # Padding compacto
-                    ("TOPPADDING",     (0,0), (-1,-1), 5),
-                    ("BOTTOMPADDING",  (0,0), (-1,-1), 5),
-                    ("LEFTPADDING",    (0,0), (-1,-1), 8),
-                    ("RIGHTPADDING",   (0,0), (-1,-1), 8),
+                    # Padding
+                    ("TOPPADDING",     (0,0), (-1,-1), pad),
+                    ("BOTTOMPADDING",  (0,0), (-1,-1), pad),
+                    ("LEFTPADDING",    (0,0), (-1,-1), pad+2),
+                    ("RIGHTPADDING",   (0,0), (-1,-1), pad+2),
                 ]))
                 story.append(Spacer(1, 6))
                 story.append(tbl)
