@@ -995,7 +995,9 @@ async function _sendTools(apiContent) {
     const d = document.createElement('div'); d.className='msg a';
     const msgId = 'm_'+Date.now();
     const htmlBlocos = renderBlocos(blocos, msgId);
-    const textoPlano = blocos.filter(b=>b.tipo==='texto').map(b=>b.conteudo).join('\n\n');
+    const textoPlano = blocos.filter(b=>b.tipo==='texto')
+      .map(b=>b.conteudo.split('<tool_call>')[0].trim())
+      .filter(Boolean).join('\n\n');
 
     d.innerHTML = `<div class="av">✦</div><div class="mc" id="${msgId}">${htmlBlocos}
       <div class="acts">
@@ -1006,7 +1008,7 @@ async function _sendTools(apiContent) {
     </div>`;
     msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight;
 
-    // Salva resposta textual no histórico
+    // Salva resposta textual no histórico — limpo
     if (textoPlano) msgs.push({role:'assistant', content: textoPlano});
     saveChat();
 
@@ -1339,7 +1341,8 @@ function renderBlocos(blocos, msgId) {
   let html = '';
   for (const b of blocos) {
     if (b.tipo === 'texto') {
-      html += `<div class="tool-block">${fmt(b.conteudo)}</div>`;
+      const textoLimpo = b.conteudo.split('<tool_call>')[0].trim();
+      if (textoLimpo) html += `<div class="tool-block">${fmt(textoLimpo)}</div>`;
 
     } else if (b.tipo === 'imagem') {
       html += `
