@@ -507,7 +507,7 @@ async function reformatar(texto, tipo){
   try{
     const r=await fetch(`${APIURL}/v1/messages`,{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01'},
+      headers:{'Content-Type':'application/json','x-api-key':cfg.key,'Authorization':'Bearer '+cfg.key,'anthropic-version':'2023-06-01'},
       body:JSON.stringify({
         model:cfg.model, max_tokens:4096,
         system:'Você é um formatador de documentos. Reformate o conteúdo recebido sem inventar informações novas. Responda apenas com o documento formatado em markdown, sem explicações.',
