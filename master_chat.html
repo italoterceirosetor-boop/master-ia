@@ -103,6 +103,37 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
 </style>
 </head>
 <body>
+<!-- LOGIN -->
+<div id="login-screen" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:320px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div style="width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px">📊</div>
+      <div style="font-size:20px;font-weight:600">Master IA</div>
+      <div style="font-size:12px;color:var(--text2)">Faça login para continuar</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <label style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Usuário</label>
+      <input id="li-user" type="text" placeholder="seu usuário"
+        style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;font-family:Sora,sans-serif;outline:none"
+        onkeydown="if(event.key==='Enter')document.getElementById('li-pass').focus()">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <label style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Senha</label>
+      <input id="li-pass" type="password" placeholder="••••••••"
+        style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;font-family:Sora,sans-serif;outline:none"
+        onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="li-err" style="font-size:12px;color:var(--danger);text-align:center;display:none">Usuário ou senha inválidos</div>
+    <button onclick="doLogin()"
+      style="background:var(--accent);border:none;color:white;padding:11px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:Sora,sans-serif">
+      Entrar
+    </button>
+    <div style="font-size:10px;color:var(--text2);text-align:center">
+      Servidor: <span id="li-srv" style="color:var(--accent2)">não configurado</span>
+    </div>
+  </div>
+</div>
+
 <div id="sidebar">
   <div class="sb-head">
     <div class="logo"><div class="logo-ic">📊</div><div><div class="logo-tx">Master IA</div><div class="logo-sub">Assistente Inteligente</div></div></div>
@@ -110,6 +141,18 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
   </div>
   <div class="sb-sec">Conversas</div>
   <div class="chat-list" id="cl"></div>
+  <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:12px">
+      <div style="font-weight:600;color:var(--text)" id="user-display">—</div>
+      <div style="color:var(--text2);font-size:10px">conta pessoal</div>
+    </div>
+    <button onclick="doLogout()"
+      style="background:none;border:1px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-family:Sora,sans-serif"
+      onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">
+      Sair
+    </button>
+  </div>
 </div>
 <div id="main">
   <header>
@@ -198,47 +241,7 @@ function salvarCfg(){
   document.getElementById('cfg').classList.remove('on');
 }
 
-function getChats(){ try{return JSON.parse(localStorage.getItem('mia_chats')||'[]');}catch{return[];} }
 
-function saveChat(){
-  if(!cid||msgs.length===0) return;
-  const titulo = document.getElementById('ct').textContent||'Conversa';
-  const chats = getChats();
-  const idx = chats.findIndex(c=>c.id===cid);
-  const c = {id:cid,titulo,msgs,updated:Date.now()};
-  if(idx>=0) chats[idx]=c; else chats.push(c);
-  localStorage.setItem('mia_chats', JSON.stringify(chats));
-  renderList();
-}
-
-function renderList(){
-  const chats = getChats().sort((a,b)=>b.updated-a.updated);
-  const el = document.getElementById('cl');
-  if(!chats.length){el.innerHTML='<div style="padding:12px 10px;font-size:11px;color:var(--text2);text-align:center">Nenhuma conversa ainda</div>';return;}
-  el.innerHTML = chats.map(c=>`
-    <div class="ci ${c.id===cid?'on':''}" onclick="loadChat('${c.id}')">
-      <span class="ci-t">${esc(c.titulo)}</span>
-      <span class="ci-d">${fd(c.updated)}</span>
-      <button class="ci-x" onclick="delChat(event,'${c.id}')">✕</button>
-    </div>`).join('');
-}
-
-function loadChat(id){
-  const c = getChats().find(c=>c.id===id);
-  if(!c) return;
-  cid=id; msgs=c.msgs||[];
-  document.getElementById('ct').textContent=c.titulo;
-  document.getElementById('msgs').innerHTML='';
-  msgs.forEach(m=>addMsg(m.role==='user'?'u':'a', m.content, false));
-  renderList();
-}
-
-function delChat(e,id){
-  e.stopPropagation();
-  const chats=getChats().filter(c=>c.id!==id);
-  localStorage.setItem('mia_chats',JSON.stringify(chats));
-  if(cid===id) novoChat(); else renderList();
-}
 
 function novoChat(){
   cid='c_'+Date.now(); msgs=[];
@@ -257,7 +260,7 @@ function novoChat(){
       <button class="sugg" onclick="sg('EFD-Reinf: o que é e quando é obrigatória?')">⚖ EFD-Reinf</button>
     </div>
   </div>`;
-  renderList();
+  loadChatList();
 }
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -434,6 +437,141 @@ function pdfLocal(text,titulo){
   w.document.close(); w.focus(); setTimeout(()=>w.print(),500);
 }
 
+// ── AUTH ─────────────────────────────────────────────────────────────────────
+let session = {token:'', nome:'', username:''};
+
+async function doLogin(){
+  const user = document.getElementById('li-user').value.trim().toLowerCase();
+  const pass = document.getElementById('li-pass').value;
+  const err  = document.getElementById('li-err');
+  err.style.display = 'none';
+  if (!cfg.srv) { err.textContent = 'Configure o servidor primeiro em ⚙ Configurar'; err.style.display='block'; return; }
+  try {
+    const r = await fetch(cfg.srv + '/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username:user, senha:pass})
+    });
+    if (!r.ok) { err.style.display='block'; return; }
+    const d = await r.json();
+    session = {token:d.token, nome:d.nome, username:d.username};
+    localStorage.setItem('mia_token',    session.token);
+    localStorage.setItem('mia_nome',     session.nome);
+    localStorage.setItem('mia_username', session.username);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('user-display').textContent = session.nome;
+    novoChat();
+    loadChatList();
+  } catch(e) {
+    err.textContent = 'Não foi possível conectar ao servidor.';
+    err.style.display = 'block';
+  }
+}
+
+function doLogout(){
+  session = {token:'',nome:'',username:''};
+  localStorage.removeItem('mia_token');
+  localStorage.removeItem('mia_nome');
+  localStorage.removeItem('mia_username');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('li-pass').value = '';
+}
+
+// ── CHAT LIST COM SERVIDOR ────────────────────────────────────────────────────
+async function loadChatList(){
+  if (!cfg.srv || !session.token) { renderLocalChats(); return; }
+  try {
+    const r = await fetch(cfg.srv + '/chats', {headers:{'X-Token':session.token,'Content-Type':'application/json'}});
+    if (!r.ok) { renderLocalChats(); return; }
+    const chats = await r.json();
+    renderChats(chats);
+  } catch(e) { renderLocalChats(); }
+}
+
+function renderLocalChats(){
+  try {
+    const chats = JSON.parse(localStorage.getItem('mia_chats_' + (session.username||'local')) || '[]');
+    renderChats(chats);
+  } catch { renderChats([]); }
+}
+
+async function saveChat(){
+  if (!cid || msgs.length === 0) return;
+  const titulo = document.getElementById('ct').textContent || 'Conversa';
+  const chat = {id:cid, titulo, msgs, updated:Date.now()};
+
+  if (cfg.srv && session.token) {
+    try {
+      await fetch(cfg.srv + '/chats', {
+        method:'POST', headers:{'X-Token':session.token,'Content-Type':'application/json'},
+        body: JSON.stringify(chat)
+      });
+    } catch(e) {}
+  } else {
+    // Fallback localStorage
+    const key = 'mia_chats_' + (session.username||'local');
+    const chats = JSON.parse(localStorage.getItem(key)||'[]');
+    const idx = chats.findIndex(c=>c.id===cid);
+    if (idx>=0) chats[idx]=chat; else chats.push(chat);
+    localStorage.setItem(key, JSON.stringify(chats));
+  }
+  loadChatList();
+}
+
+async function loadChat(id){
+  if (cfg.srv && session.token) {
+    try {
+      const r = await fetch(cfg.srv + '/chats/' + id, {headers:{'X-Token':session.token,'Content-Type':'application/json'}});
+      if (r.ok) {
+        const chat = await r.json();
+        cid = id; msgs = chat.msgs||[];
+        document.getElementById('ct').textContent = chat.titulo;
+        document.getElementById('msgs').innerHTML='';
+        msgs.forEach(m=>addMsg(m.role==='user'?'u':'a', m.content, false));
+        renderChats(null);
+        return;
+      }
+    } catch(e) {}
+  }
+  // Fallback localStorage
+  const key = 'mia_chats_' + (session.username||'local');
+  const chats = JSON.parse(localStorage.getItem(key)||'[]');
+  const chat = chats.find(c=>c.id===id);
+  if (!chat) return;
+  cid=id; msgs=chat.msgs||[];
+  document.getElementById('ct').textContent=chat.titulo;
+  document.getElementById('msgs').innerHTML='';
+  msgs.forEach(m=>addMsg(m.role==='user'?'u':'a',m.content,false));
+  renderChats(null);
+}
+
+async function delChat(e,id){
+  e.stopPropagation();
+  if (cfg.srv && session.token) {
+    try { await fetch(cfg.srv+'/chats/'+id,{method:'DELETE',headers:{'X-Token':session.token,'Content-Type':'application/json'}}); } catch(e){}
+  } else {
+    const key='mia_chats_'+(session.username||'local');
+    const chats=JSON.parse(localStorage.getItem(key)||'[]').filter(c=>c.id!==id);
+    localStorage.setItem(key,JSON.stringify(chats));
+  }
+  if(cid===id) novoChat(); else loadChatList();
+}
+
+function renderChats(chats){
+  if (chats === null) { loadChatList(); return; }
+  const list = document.getElementById('cl');
+  if (!chats || chats.length===0){
+    list.innerHTML='<div style="padding:12px 10px;font-size:11px;color:var(--text2);text-align:center">Nenhuma conversa ainda</div>';
+    return;
+  }
+  const sorted = [...chats].sort((a,b)=>(b.updated||0)-(a.updated||0));
+  list.innerHTML = sorted.map(c=>`
+    <div class="ci ${c.id===cid?'on':''}" onclick="loadChat('${c.id}')">
+      <span class="ci-t">${esc(c.titulo)}</span>
+      <span class="ci-d">${fd(c.updated||0)}</span>
+      <button class="ci-x" onclick="delChat(event,'${c.id}')">✕</button>
+    </div>`).join('');
+}
+
 // ── ARQUIVO ANEXADO ─────────────────────────────────────────────────────────
 let attachedFile = null;
 let attachedFileData = null;
@@ -536,8 +674,35 @@ async function send(){
   document.getElementById('cm').value=cfg.model;
   document.getElementById('mb').textContent=cfg.model;
   if(!cfg.key) document.getElementById('nk').style.display='block';
-  novoChat();
+
+  // Mostra servidor na tela de login
+  const srvEl = document.getElementById('li-srv');
+  if (srvEl) srvEl.textContent = cfg.srv || 'não configurado';
+
+  // Tenta restaurar sessão salva
+  const tok = localStorage.getItem('mia_token');
+  const nom = localStorage.getItem('mia_nome');
+  const usr = localStorage.getItem('mia_username');
+  if (tok && nom && cfg.srv) {
+    fetch(cfg.srv + '/chats', {headers:{'X-Token': tok, 'Content-Type':'application/json'}})
+      .then(r => {
+        if (r.ok) {
+          session = {token: tok, nome: nom, username: usr||''};
+          document.getElementById('login-screen').style.display = 'none';
+          document.getElementById('user-display').textContent = nom;
+          novoChat();
+          loadChatList();
+        } else { showLogin(); }
+      })
+      .catch(() => { showLogin(); });
+  } else {
+    showLogin();
+  }
 })();
+
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+}
 </script>
 </body>
 </html>
