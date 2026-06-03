@@ -387,9 +387,13 @@ mark{background:rgba(61,126,255,.25);color:var(--accent);border-radius:2px;paddi
       ondragleave="this.style.borderColor=''"
       ondrop="onDrop(event)">
       <input type="file" id="file-input" accept=".pdf,.xlsx,.xls,.csv,.txt,.docx" style="display:none" onchange="onFileSelected(event)">
+      <input type="file" id="img-input" accept="image/*" style="display:none" onchange="onImageSelected(event)">
       <button onclick="document.getElementById('file-input').click()" title="Anexar arquivo"
         style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:0 4px;transition:color .2s;flex-shrink:0"
         onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text2)'">📎</button>
+      <button onclick="document.getElementById('img-input').click()" title="Enviar imagem"
+        style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:0 4px;transition:color .2s;flex-shrink:0"
+        onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text2)'">🖼</button>
       <textarea id="inp" placeholder="Digite sua mensagem..." rows="1" onkeydown="hk(event)" oninput="ar(this)"></textarea>
       <button id="sbtn" onclick="send()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -583,11 +587,22 @@ async function gerarDoc(msgId, tipo, btn){
   }
 
   btn.textContent='⏳ Gerando...';
+  // Coleta imagens geradas no chat desta mensagem
+  const imgEls = document.getElementById(msgId)?.querySelectorAll('.tool-img') || [];
+  const imagensChat = [];
+  imgEls.forEach(img => {
+    const src = img.src || '';
+    if (src.startsWith('data:image/png;base64,')) {
+      const b64 = src.replace('data:image/png;base64,','');
+      const leg = img.alt || '';
+      imagensChat.push({b64, legenda: leg});
+    }
+  });
   try{
     const r=await fetch(`${cfg.srv}/gerar`,{
       method:'POST',
       headers:{'Content-Type':'application/json','X-Token': session.token || localStorage.getItem('mia_token') || ''},
-      body:JSON.stringify({tipo,titulo,conteudo})
+      body:JSON.stringify({tipo, titulo, conteudo, imagens: tipo==='pdf' ? imagensChat : []})
     });
     if(!r.ok) throw new Error('Erro '+r.status);
     const blob=await r.blob();
@@ -846,6 +861,21 @@ function renderChats(chats, termo=''){
 // ── ARQUIVO ANEXADO ─────────────────────────────────────────────────────────
 let attachedFile = null;
 let attachedFileData = null;
+let attachedImage = null;      // { b64, mediaType, name }
+
+function onImageSelected(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const b64 = e.target.result.split(',')[1];
+    const mediaType = file.type || 'image/jpeg';
+    attachedImage = { b64, mediaType, name: file.name };
+    document.getElementById('file-name').textContent = '🖼 ' + file.name;
+    document.getElementById('file-preview').style.display = 'flex';
+  };
+  reader.readAsDataURL(file);
+}
 
 function onDrop(event) {
   event.preventDefault();
@@ -901,7 +931,9 @@ function processFile(file) {
 function clearFile() {
   attachedFile = null;
   attachedFileData = null;
+  attachedImage = null;
   document.getElementById('file-input').value = '';
+  document.getElementById('img-input').value = '';
   document.getElementById('file-preview').style.display = 'none';
 }
 
@@ -916,9 +948,16 @@ async function send(){
   if(!cfg.key){document.getElementById('cfg').classList.add('on');document.getElementById('nk').style.display='block';return;}
   if(!cid) cid='c_'+Date.now();
 
-  // Monta conteúdo com ou sem arquivo
+  // Monta conteúdo com ou sem arquivo/imagem
   let apiContent;
-  if (attachedFile && attachedFileData) {
+  if (attachedImage) {
+    // Imagem — envia como vision
+    apiContent = [
+      { type: 'image', source: { type: 'base64', media_type: attachedImage.mediaType, data: attachedImage.b64 } },
+      { type: 'text', text: text || 'Analise esta imagem.' }
+    ];
+    clearFile();
+  } else if (attachedFile && attachedFileData) {
     const ext = attachedFile.name.split('.').pop().toLowerCase();
     if (ext === 'pdf') {
       apiContent = [
