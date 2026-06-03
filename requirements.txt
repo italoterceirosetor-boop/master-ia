@@ -10,3 +10,4 @@ pandas
 numpy
 Pillow
 requests
+gevent
