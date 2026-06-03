@@ -479,7 +479,7 @@ function addMsg(role, content, withActs=true){
     <button class="ba" onclick="gerarDoc('${id}','word',this)">📝 Word</button>
     <button class="ba" onclick="gerarDoc('${id}','excel',this)">📊 Excel</button>
   </div>`:'';
-  d.innerHTML=`<div class="av">${av}</div><div class="mc" id="${id}">${fmt(content)}${acts}</div>`;
+  d.innerHTML=`<div class="av">${av}</div><div class="mc" id="${id}" data-markdown="${String(content).replace(/"/g,'&quot;')}">${fmt(content)}${acts}</div>`;
   c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
 
@@ -536,40 +536,29 @@ async function reformatar(texto, tipo, temaOriginal=''){
 }
 
 async function gerarDoc(msgId, tipo, btn){
-  const el=document.getElementById(msgId); const cl=el.cloneNode(true);
-  cl.querySelector('.acts')?.remove();
-
-  // Extrai conteúdo limpo — trata blocos de ferramenta separadamente
-  let partes = [];
-  cl.querySelectorAll('.tool-block').forEach(bloco => {
-    // Bloco de código Python
-    const codeBody = bloco.querySelector('.code-body');
-    if (codeBody) {
-      partes.push('```python\n' + codeBody.innerText + '\n```');
-      // Saída da execução
-      const out = bloco.querySelector('.exec-out');
-      if (out) partes.push('**Saída:**\n' + out.innerText);
-      const err = bloco.querySelector('.exec-err');
-      if (err) partes.push('**Erro:**\n' + err.innerText);
-      return;
-    }
-    // Bloco de imagem — pula (não tem como colocar no PDF assim)
-    if (bloco.querySelector('.tool-img')) {
-      partes.push('[Gráfico gerado — veja no chat]');
-      return;
-    }
-    // Bloco Excel — pula
-    if (bloco.querySelector('.excel-block')) {
-      partes.push('[Planilha Excel gerada — baixe pelo botão no chat]');
-      return;
-    }
-    // Texto normal
-    partes.push(bloco.innerText);
-  });
-
-  // Se não tem tool-blocks, pega o texto todo (resposta de streaming normal)
-  const original = partes.length > 0 ? partes.join('\n\n') : (cl.innerText||cl.textContent);
+  const el=document.getElementById(msgId);
   const labels={pdf:'📄 PDF',word:'📝 Word',excel:'📊 Excel'};
+
+  // Pega markdown original guardado no dataset — muito mais limpo que innerText
+  const mdOriginal = el?.dataset?.markdown || '';
+
+  // Fallback: extrai texto do DOM se não tem markdown salvo
+  let original = mdOriginal;
+  if (!original) {
+    const cl = el.cloneNode(true);
+    cl.querySelector('.acts')?.remove();
+    // Remove blocos de imagem/excel/código do DOM antes de pegar texto
+    cl.querySelectorAll('.tool-img-wrap, .excel-block').forEach(b => {
+      b.parentElement?.remove();
+    });
+    // Para código, pega só o texto limpo
+    cl.querySelectorAll('.code-body').forEach(b => {
+      b.innerHTML = '```\n' + b.innerText + '\n```';
+    });
+    original = cl.innerText || cl.textContent || '';
+  }
+
+  original = original.split('<tool_call>')[0].trim();
 
   btn.textContent='⏳ Formatando...'; btn.classList.add('ld'); btn.disabled=true;
 
@@ -999,7 +988,7 @@ async function _sendTools(apiContent) {
       .map(b=>b.conteudo.split('<tool_call>')[0].trim())
       .filter(Boolean).join('\n\n');
 
-    d.innerHTML = `<div class="av">✦</div><div class="mc" id="${msgId}">${htmlBlocos}
+    d.innerHTML = `<div class="av">✦</div><div class="mc" id="${msgId}" data-markdown="${textoPlano.replace(/"/g,'&quot;')}">${htmlBlocos}
       <div class="acts">
         <button class="ba" onclick="copiarTexto(${JSON.stringify(textoPlano)},this)">📋 Copiar</button>
         <button class="ba" onclick="gerarDoc('${msgId}','pdf',this)">📄 PDF</button>
@@ -1079,6 +1068,7 @@ async function _sendStreaming(apiContent) {
     const bubble=document.getElementById(msgId);
     if(bubble){
       bubble.querySelector('.stream-cursor')?.remove();
+      bubble.dataset.markdown = fullText;
       bubble.innerHTML=fmt(fullText)+`<div class="acts">
         <button class="ba" onclick="copiar('${msgId}',this)">📋 Copiar</button>
         <button class="ba" onclick="gerarDoc('${msgId}','pdf',this)">📄 PDF</button>
