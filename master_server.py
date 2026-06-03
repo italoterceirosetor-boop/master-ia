@@ -1676,7 +1676,11 @@ def chat_tools():
         "Após usar uma ferramenta, comente o resultado brevemente em português."
     )
 
-    client = _anthropic.Anthropic(api_key=api_key)
+    client = _anthropic.Anthropic(
+        api_key=api_key,
+        base_url="https://api.iacontaai.com.br",
+        default_headers={"Authorization": f"Bearer {api_key}"}
+    )
 
     try:
         response = client.messages.create(
