@@ -5,3 +5,7 @@ openpyxl
 reportlab
 bcrypt
 gunicorn
+matplotlib
+pandas
+numpy
+Pillow
