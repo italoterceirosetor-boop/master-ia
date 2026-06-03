@@ -586,7 +586,7 @@ async function gerarDoc(msgId, tipo, btn){
   try{
     const r=await fetch(`${cfg.srv}/gerar`,{
       method:'POST',
-      headers:{'Content-Type':'application/json','X-Token':'local'},
+      headers:{'Content-Type':'application/json','X-Token': session.token || localStorage.getItem('mia_token') || ''},
       body:JSON.stringify({tipo,titulo,conteudo})
     });
     if(!r.ok) throw new Error('Erro '+r.status);
@@ -1439,6 +1439,10 @@ function copiarTexto(texto, btn) {
   const tok = localStorage.getItem('mia_token');
   const nom = localStorage.getItem('mia_nome');
   const usr = localStorage.getItem('mia_username');
+  // Restaura sessão em memória imediatamente
+  if (tok && nom) {
+    session = {token: tok, nome: nom, username: usr||''};
+  }
   if (tok && nom && cfg.srv) {
     fetch(cfg.srv + '/chats', {headers:{'X-Token': tok, 'Content-Type':'application/json'}})
       .then(r => {
