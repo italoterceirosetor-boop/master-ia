@@ -177,7 +177,7 @@ def _md_to_rl(text):
     return text
 
 
-def gen_pdf(titulo, content):
+def gen_pdf(titulo, content, imagens=None):
     buf = io.BytesIO()
 
     # Paleta neutra profissional
@@ -274,7 +274,7 @@ def gen_pdf(titulo, content):
         story.append(toc_title)
         for htype, htxt in headings:
             s = s_toc if htype == 'h1' else s_toc2
-            prefix = '● ' if htype == 'h1' else '  · '
+            prefix = '* ' if htype == 'h1' else '  - '
             story.append(Paragraph(prefix + htxt, s))
         story.append(Spacer(1, 0.5*cm))
         story.append(HRFlowable(width='100%', thickness=0.5,
@@ -324,7 +324,7 @@ def gen_pdf(titulo, content):
         elif btype == 'bullets':
             for item in block['items']:
                 story.append(Paragraph(
-                    f'<font color="#2b6cb0">▸</font>  {_md_to_rl(item)}', s_bul))
+                    f'<font color="#2b6cb0">-&gt;</font>  {_md_to_rl(item)}', s_bul))
 
         elif btype == 'numbered':
             for n, item in enumerate(block['items'], 1):
@@ -380,6 +380,27 @@ def gen_pdf(titulo, content):
                                      color=C_BORDER, spaceBefore=6, spaceAfter=6))
         elif btype == 'space':
             story.append(Spacer(1, 4))
+
+    # ── IMAGENS GERADAS ───────────────────────────────────────────────────────
+    if imagens:
+        from reportlab.platypus import Image as RLImage
+        story.append(Spacer(1, 8))
+        story.append(HRFlowable(width='100%', thickness=0.5, color=C_BORDER))
+        story.append(Spacer(1, 6))
+        for img_info in imagens:
+            try:
+                img_data = base64.b64decode(img_info['b64'])
+                img_buf  = io.BytesIO(img_data)
+                img_rl   = RLImage(img_buf, width=W, height=W*0.55)
+                legenda  = img_info.get('legenda','')
+                story.append(img_rl)
+                if legenda:
+                    story.append(Paragraph(legenda,
+                        ParagraphStyle('leg', fontSize=8, textColor=C_MUTED,
+                                       alignment=TA_CENTER, spaceAfter=6)))
+                story.append(Spacer(1, 8))
+            except Exception:
+                pass
 
     # ── RODAPÉ ────────────────────────────────────────────────────────────────
     story.append(Spacer(1, 12))
@@ -927,6 +948,7 @@ def gerar():
     tipo     = (d.get("tipo") or "pdf").lower()
     titulo   = d.get("titulo") or "Documento"
     conteudo = d.get("conteudo") or ""
+    imagens  = d.get("imagens") or []  # lista de {b64, legenda}
     if not conteudo:
         return jsonify({"erro": "Conteúdo vazio"}), 400
     try:
@@ -939,7 +961,7 @@ def gerar():
             ext  = "xlsx"
             mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         else:
-            data = gen_pdf(titulo, conteudo)
+            data = gen_pdf(titulo, conteudo, imagens=imagens)
             ext  = "pdf"
             mime = "application/pdf"
 
@@ -2091,3 +2113,4 @@ def chat_tools():
 
     registrar_evento("mensagem", user)
     return jsonify({"blocos": result_blocks, "stop_reason": data.get("stop_reason","")})
+
