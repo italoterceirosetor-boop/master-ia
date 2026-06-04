@@ -1609,6 +1609,11 @@ function renderBlocos(blocos, msgId) {
       const hlCode = syntaxHL(b.codigo);
       const codeId = 'code_'+Date.now()+'_'+Math.random().toString(36).slice(2);
       const codeId2 = 'cb_'+Date.now();
+      // Ícone por tipo de arquivo gerado
+      const arqIcone = b.arquivo_tipo === 'application/pdf' ? '📄 PDF' :
+                       (b.arquivo_tipo||'').includes('wordprocessing') ? '📝 Word' :
+                       (b.arquivo_tipo||'').includes('spreadsheet') ? '📊 Excel' :
+                       b.arquivo_nome ? '📁 ' + b.arquivo_nome : '';
       html += `
         <div class="tool-block">
           <div class="code-block">
@@ -1617,13 +1622,23 @@ function renderBlocos(blocos, msgId) {
               <button class="code-copy" onclick="event.stopPropagation();copiarTexto(${JSON.stringify(b.codigo)},this)">📋</button>
             </div>
             <div class="code-body" id="${codeId2}" style="display:none">${hlCode}</div>
-            ${b.stdout || b.stderr || b.imagem_b64 ? `
+            ${b.stdout || b.stderr || b.imagem_b64 || b.arquivo_b64 ? `
             <div class="exec-result">
               ${b.stdout ? `<div class="exec-label">Saída</div><div class="exec-out">${esc(b.stdout)}</div>` : ''}
-              ${b.stderr && !b.imagem_b64 ? `<div class="exec-label" style="color:var(--danger)">Erro</div><div class="exec-err">${esc(b.stderr)}</div>` : ''}
+              ${b.stderr && b.erro ? `<div class="exec-label" style="color:var(--danger)">Erro</div><div class="exec-err">${esc(b.stderr)}</div>` : ''}
               ${b.imagem_b64 ? `<div class="tool-img-wrap" style="margin-top:8px">
                 <img class="tool-img" src="data:image/png;base64,${b.imagem_b64}" onclick="abrirLightbox(this.src)">
                 <button class="tool-img-dl" onclick="dlImagem('${b.imagem_b64}','resultado')">⬇ Baixar</button>
+              </div>` : ''}
+              ${b.arquivo_b64 ? `<div style="margin-top:8px">
+                <div class="excel-block">
+                  <div class="excel-icon">${arqIcone.split(' ')[0]}</div>
+                  <div class="excel-info">
+                    <div class="excel-nome">${esc(b.arquivo_nome||'arquivo')}</div>
+                    <div class="excel-sub">Gerado via Python</div>
+                  </div>
+                  <button class="excel-dl" onclick="dlArquivo('${b.arquivo_b64}','${esc(b.arquivo_nome||'arquivo')}','${esc(b.arquivo_tipo||'')}')">⬇ Baixar</button>
+                </div>
               </div>` : ''}
             </div>` : ''}
           </div>
@@ -1671,6 +1686,23 @@ function dlExcel(b64, nome) {
   const arr = new Uint8Array(bin.length);
   for (let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
   const blob = new Blob([arr],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = nome; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function dlArquivo(b64, nome, tipo) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  const mimeMap = {
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/pdf': 'application/pdf',
+  };
+  const mimeType = mimeMap[tipo] || tipo || 'application/octet-stream';
+  const blob = new Blob([arr], {type: mimeType});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href = url; a.download = nome; a.click();
