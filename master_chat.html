@@ -965,6 +965,7 @@ let attachedImage = null;      // { b64, mediaType, name }
 
 // Lista de múltiplos anexos
 let attachedFiles = []; // [{type:'image'|'file', b64, mediaType, name, fileObj}]
+let _filesLoading = 0;  // contador de arquivos ainda sendo lidos
 
 function _renderFileChips() {
   const chips = document.getElementById('file-chips');
@@ -975,7 +976,11 @@ function _renderFileChips() {
       <span onclick="removeAttachment(${i})" style="cursor:pointer;color:var(--danger);margin-left:4px">×</span>
     </span>`
   ).join('');
-  document.getElementById('file-preview').style.display = attachedFiles.length ? 'flex' : 'none';
+  // Mostra indicador se ainda carregando
+  if (_filesLoading > 0) {
+    chips.innerHTML += `<span style="color:var(--text2);font-size:10px;padding:2px 6px">⏳ processando...</span>`;
+  }
+  document.getElementById('file-preview').style.display = (attachedFiles.length || _filesLoading > 0) ? 'flex' : 'none';
 }
 
 function removeAttachment(i) {
@@ -990,6 +995,7 @@ function removeAttachment(i) {
 
 function clearFile() {
   attachedFiles = [];
+  _filesLoading = 0;
   attachedImage = null; attachedFile = null; attachedFileData = null;
   _renderFileChips();
 }
@@ -1002,8 +1008,10 @@ function onAnyFileSelected(event) {
     const isImage = file.type.startsWith('image/') || ['png','jpg','jpeg','gif','webp','bmp'].includes(ext);
     const isExcel = ['xlsx','xls'].includes(ext);
 
+    _filesLoading++;
+    _renderFileChips();
+
     if (isExcel) {
-      // Excel: converte para CSV via SheetJS
       const reader = new FileReader();
       reader.onload = function(e) {
         try {
@@ -1019,25 +1027,33 @@ function onAnyFileSelected(event) {
           attachedFiles.push({type:'file', b64, mediaType:'text/csv', name: file.name, fileObj: file});
           attachedFileData = b64;
           attachedFile = file;
-          _renderFileChips();
         } catch(err) {
           console.error('Erro ao ler Excel:', err);
+        } finally {
+          _filesLoading--;
+          _renderFileChips();
         }
       };
+      reader.onerror = function() { _filesLoading--; _renderFileChips(); };
       reader.readAsArrayBuffer(file);
     } else {
       const reader = new FileReader();
       reader.onload = function(e) {
-        const b64 = e.target.result.split(',')[1];
-        attachedFiles.push({
-          type: isImage ? 'image' : 'file',
-          b64, mediaType: file.type||'application/octet-stream',
-          name: file.name, fileObj: file
-        });
-        if (isImage) attachedImage = { b64, mediaType: file.type||'image/jpeg', name: file.name };
-        else { attachedFileData = b64; attachedFile = file; }
-        _renderFileChips();
+        try {
+          const b64 = e.target.result.split(',')[1];
+          attachedFiles.push({
+            type: isImage ? 'image' : 'file',
+            b64, mediaType: file.type||'application/octet-stream',
+            name: file.name, fileObj: file
+          });
+          if (isImage) attachedImage = { b64, mediaType: file.type||'image/jpeg', name: file.name };
+          else { attachedFileData = b64; attachedFile = file; }
+        } finally {
+          _filesLoading--;
+          _renderFileChips();
+        }
       };
+      reader.onerror = function() { _filesLoading--; _renderFileChips(); };
       reader.readAsDataURL(file);
     }
   });
@@ -1148,8 +1164,14 @@ async function send(){
   if(busy) return;
   const inp=document.getElementById('inp');
   const text=inp.value.trim();
-  // Permite enviar se tiver texto OU arquivos anexados
-  if(!text && attachedFiles.length === 0) return;
+  if(!text && attachedFiles.length === 0 && _filesLoading === 0) return;
+  if(_filesLoading > 0) {
+    // Ainda processando arquivos — aguarda e tenta de novo
+    const sbtn = document.getElementById('sbtn');
+    sbtn.style.background = 'var(--accent2)';
+    setTimeout(() => { sbtn.style.background = ''; send(); }, 500);
+    return;
+  }
   if(!cfg.key){document.getElementById('cfg').classList.add('on');document.getElementById('nk').style.display='block';return;}
   if(!cid) cid='c_'+Date.now();
 
