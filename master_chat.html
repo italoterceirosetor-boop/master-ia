@@ -1056,8 +1056,8 @@ function toggleCode(id) {
 function onDrop(event) {
   event.preventDefault();
   document.getElementById('drop-zone').style.borderColor = '';
-  const file = event.dataTransfer.files[0];
-  if (file) processFile(file);
+  const files = Array.from(event.dataTransfer.files);
+  if (files.length) onAnyFileSelected({ target: { files } });
 }
 
 function onFileSelected(event) {
