@@ -1120,7 +1120,9 @@ function ar(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,
 async function send(){
   if(busy) return;
   const inp=document.getElementById('inp');
-  const text=inp.value.trim(); if(!text) return;
+  const text=inp.value.trim();
+  // Permite enviar se tiver texto OU arquivos anexados
+  if(!text && attachedFiles.length === 0) return;
   if(!cfg.key){document.getElementById('cfg').classList.add('on');document.getElementById('nk').style.display='block';return;}
   if(!cid) cid='c_'+Date.now();
 
@@ -1146,6 +1148,15 @@ async function send(){
         } catch(e) {
           parts.push({ type: 'text', text: `\n\n[Arquivo: ${f.name}]` });
         }
+      } else if (['xlsx','xls'].includes(ext)) {
+        try {
+          const decoded = decodeURIComponent(escape(atob(f.b64)));
+          parts.push({ type: 'text', text: `\n\n--- Planilha: ${f.name} ---\n${decoded}` });
+        } catch(e) {
+          parts.push({ type: 'text', text: `\n\n[Planilha: ${f.name} — não foi possível ler]` });
+        }
+      } else if (ext === 'docx') {
+        parts.push({ type: 'document', source: { type: 'base64', media_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', data: f.b64 } });
       } else {
         parts.push({ type: 'text', text: `\n\n[Arquivo: ${f.name}]` });
       }
