@@ -1145,14 +1145,22 @@ async function _sendTools(apiContent, tipoDownload=null) {
       .map(b=>b.conteudo.split('<tool_call>')[0].trim())
       .filter(Boolean).join('\n\n');
 
-    d.innerHTML = `<div class="av">✦</div><div class="mc" id="${msgId}" data-markdown="${textoPlano.replace(/"/g,'&quot;')}">${htmlBlocos}
-      <div class="acts">
+    d.innerHTML = `<div class="av">✦</div><div class="mc" id="${msgId}" data-markdown="${textoPlano.replace(/"/g,'&quot;')}">${htmlBlocos}</div>`;
+    msgsEl.appendChild(d);
+
+    // Adiciona botões de ação (aparecem ao hover)
+    const mc = d.querySelector('.mc');
+    if (mc) {
+      const actsEl = document.createElement('div');
+      actsEl.className = 'acts acts-hover';
+      actsEl.innerHTML = `
         <button class="ba" onclick="copiarTexto(${JSON.stringify(textoPlano)},this)">📋 Copiar</button>
         <button class="ba" onclick="gerarDoc('${msgId}','pdf',this)">📄 PDF</button>
         <button class="ba" onclick="gerarDoc('${msgId}','word',this)">📝 Word</button>
-      </div>
-    </div>`;
-    msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight;
+        <button class="ba" onclick="gerarDoc('${msgId}','excel',this)">📊 Excel</button>`;
+      mc.appendChild(actsEl);
+    }
+    msgsEl.scrollTop = msgsEl.scrollHeight;
 
     // Salva resposta textual no histórico — limpo
     if (textoPlano) msgs.push({role:'assistant', content: textoPlano});
@@ -1231,12 +1239,16 @@ async function _sendStreaming(apiContent, tipoDownload=null) {
     if(bubble){
       bubble.querySelector('.stream-cursor')?.remove();
       bubble.dataset.markdown = fullText;
-      bubble.innerHTML=fmt(fullText)+`<div class="acts">
+      bubble.innerHTML = fmt(fullText);
+      // Botões de ação
+      const actsEl = document.createElement('div');
+      actsEl.className = 'acts acts-hover';
+      actsEl.innerHTML = `
         <button class="ba" onclick="copiar('${msgId}',this)">📋 Copiar</button>
         <button class="ba" onclick="gerarDoc('${msgId}','pdf',this)">📄 PDF</button>
         <button class="ba" onclick="gerarDoc('${msgId}','word',this)">📝 Word</button>
-        <button class="ba" onclick="gerarDoc('${msgId}','excel',this)">📊 Excel</button>
-      </div>`;
+        <button class="ba" onclick="gerarDoc('${msgId}','excel',this)">📊 Excel</button>`;
+      bubble.appendChild(actsEl);
     }
     document.getElementById('msg-stream')?.removeAttribute('id');
     msgs.push({role:'assistant',content:fullText});
