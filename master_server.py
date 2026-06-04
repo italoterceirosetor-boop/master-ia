@@ -336,44 +336,71 @@ def gen_pdf(titulo, content, imagens=None):
             rows    = block.get('rows', [])
             if not headers: continue
             ncols = len(headers)
-            all_rows = [headers] + rows
-            # Calcula larguras proporcionais
-            col_lens = [max((len(str(r[j])) if j < len(r) else 4)
-                            for r in all_rows) for j in range(ncols)]
+
+            # Remove markdown inline das células
+            def _cc(v):
+                v = str(v)
+                v = _re.sub(r'\*\*(.+?)\*\*', r'\1', v)
+                v = _re.sub(r'\*(.+?)\*',     r'\1', v)
+                v = _re.sub(r'`(.+?)`',        r'\1', v)
+                return v.strip()
+
+            all_rows = [[_cc(c) for c in headers]] + [[_cc(c) for c in r] for r in rows]
+
+            # Largura proporcional ao conteúdo, com mínimo de 8%
+            col_lens = [max(len(all_rows[ri][j]) if j < len(all_rows[ri]) else 3
+                            for ri in range(len(all_rows))) for j in range(ncols)]
             total = sum(col_lens) or 1
-            col_widths = [W * (cl/total) for cl in col_lens]
+            min_w = W * 0.08
+            col_widths = [max(W * cl / total, min_w) for cl in col_lens]
+            sw = sum(col_widths)
+            col_widths = [w * W / sw for w in col_widths]
 
             is_wide = ncols > 5
-            fs = 8 if is_wide else 9.5
-            pad = 3 if is_wide else 6
+            fs  = 7.5 if is_wide else 9
+            pad = 3   if is_wide else 5
 
-            s_th = sty('th', fontSize=fs, fontName='Helvetica-Bold',
-                       textColor=C_WHITE, alignment=TA_CENTER)
-            s_td = sty('td', fontSize=fs, leading=fs+4,
-                       textColor=C_DARK, alignment=TA_LEFT)
+            # Detecta colunas numéricas para alinhamento à direita
+            def _is_num(v):
+                v2 = v.replace('.','').replace(',','.').replace('R$','').replace('%','').replace(' ','')
+                try: float(v2); return True
+                except: return False
 
-            tdata = [[Paragraph(str(h), s_th) for h in headers]]
-            for ri, row in enumerate(rows):
-                tdata.append([Paragraph(str(row[j]) if j < len(row) else '', s_td)
-                               for j in range(ncols)])
+            num_cols = set()
+            for j in range(ncols):
+                vals = [all_rows[ri][j] for ri in range(1,len(all_rows)) if j < len(all_rows[ri])]
+                if vals and sum(1 for v in vals if _is_num(v)) >= len(vals)*0.6:
+                    num_cols.add(j)
 
-            tbl = Table(tdata, colWidths=col_widths, repeatRows=1)
-            ts = TableStyle([
-                ('BACKGROUND',     (0,0), (-1,0), C_DARK),
-                ('LINEBELOW',      (0,0), (-1,0), 2, C_ACCENT),
-                ('ROWBACKGROUNDS', (0,1), (-1,-1), [C_WHITE, C_STRIPE]),
-                ('GRID',           (0,0), (-1,-1), 0.3, C_BORDER),
-                ('BOX',            (0,0), (-1,-1), 1,   C_BORDER),
-                ('TOPPADDING',     (0,0), (-1,-1), pad),
-                ('BOTTOMPADDING',  (0,0), (-1,-1), pad),
-                ('LEFTPADDING',    (0,0), (-1,-1), pad+2),
-                ('RIGHTPADDING',   (0,0), (-1,-1), pad+2),
-                ('VALIGN',         (0,0), (-1,-1), 'MIDDLE'),
-            ])
-            tbl.setStyle(ts)
-            story.append(Spacer(1, 6))
-            story.append(tbl)
+            s_th = sty(f'TH{id(block)}', fontSize=fs, fontName='Helvetica-Bold',
+                       textColor=C_WHITE, alignment=TA_CENTER, leading=fs+3)
+            s_td = sty(f'TD{id(block)}', fontSize=fs, leading=fs+4, textColor=C_DARK, alignment=TA_LEFT)
+            s_tn = sty(f'TN{id(block)}', fontSize=fs, leading=fs+4, textColor=C_DARK, alignment=TA_RIGHT)
+
+            tdata = [[Paragraph(c, s_th) for c in all_rows[0]]]
+            for ri in range(1, len(all_rows)):
+                trow = []
+                for j in range(ncols):
+                    val = all_rows[ri][j] if j < len(all_rows[ri]) else ''
+                    trow.append(Paragraph(val, s_tn if j in num_cols else s_td))
+                tdata.append(trow)
+
+            tbl = Table(tdata, colWidths=col_widths, repeatRows=1, hAlign='CENTER', splitByRow=True)
+            tbl.setStyle(TableStyle([
+                ('BACKGROUND',     (0,0),  (-1,0),  C_DARK),
+                ('LINEBELOW',      (0,0),  (-1,0),  2.5, C_ACCENT),
+                ('ROWBACKGROUNDS', (0,1),  (-1,-1), [C_WHITE, C_STRIPE]),
+                ('GRID',           (0,0),  (-1,-1), 0.3, C_BORDER),
+                ('BOX',            (0,0),  (-1,-1), 1.2, C_DARK),
+                ('TOPPADDING',     (0,0),  (-1,-1), pad),
+                ('BOTTOMPADDING',  (0,0),  (-1,-1), pad),
+                ('LEFTPADDING',    (0,0),  (-1,-1), pad+2),
+                ('RIGHTPADDING',   (0,0),  (-1,-1), pad+2),
+                ('VALIGN',         (0,0),  (-1,-1), 'MIDDLE'),
+            ]))
             story.append(Spacer(1, 8))
+            story.append(tbl)
+            story.append(Spacer(1, 10))
 
         elif btype == 'hr':
             story.append(HRFlowable(width='100%', thickness=0.5,
@@ -2283,5 +2310,3 @@ def chat_tools():
 
     registrar_evento("mensagem", user)
     return jsonify({"blocos": result_blocks, "stop_reason": stop_reason})
-
-
