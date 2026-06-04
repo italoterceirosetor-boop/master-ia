@@ -1116,29 +1116,28 @@ async function send(){
   let apiContent;
   if (attachedFiles.length > 0) {
     const parts = [];
-    // Texto primeiro
     if (text) parts.push({ type: 'text', text });
-    // Processa cada anexo
     for (const f of attachedFiles) {
-      if (f.type === 'image') {
-        parts.push({ type: 'image', source: { type: 'base64', media_type: f.mediaType, data: f.b64 } });
-      } else {
-        const ext = f.name.split('.').pop().toLowerCase();
-        if (ext === 'pdf') {
-          parts.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: f.b64 } });
-        } else if (ext === 'txt' || ext === 'csv') {
-          try {
-            const decoded = decodeURIComponent(escape(atob(f.b64)));
-            parts.push({ type: 'text', text: `\n\n--- Arquivo: ${f.name} ---\n${decoded}` });
-          } catch(e) {
-            parts.push({ type: 'text', text: `\n\n[Arquivo: ${f.name}]` });
-          }
-        } else {
-          parts.push({ type: 'text', text: `\n\n[Arquivo anexado: ${f.name}]` });
+      // Detecta imagem por tipo OU extensão do nome
+      const imgExts = ['png','jpg','jpeg','gif','webp','bmp'];
+      const ext = f.name.split('.').pop().toLowerCase();
+      const isImg = f.type === 'image' || imgExts.includes(ext) || (f.mediaType||'').startsWith('image/');
+      if (isImg) {
+        const mt = f.mediaType || ('image/' + (ext||'png'));
+        parts.push({ type: 'image', source: { type: 'base64', media_type: mt, data: f.b64 } });
+      } else if (ext === 'pdf') {
+        parts.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: f.b64 } });
+      } else if (ext === 'txt' || ext === 'csv') {
+        try {
+          const decoded = decodeURIComponent(escape(atob(f.b64)));
+          parts.push({ type: 'text', text: `\n\n--- Arquivo: ${f.name} ---\n${decoded}` });
+        } catch(e) {
+          parts.push({ type: 'text', text: `\n\n[Arquivo: ${f.name}]` });
         }
+      } else {
+        parts.push({ type: 'text', text: `\n\n[Arquivo: ${f.name}]` });
       }
     }
-    // Se não tinha texto, adiciona prompt padrão
     if (!text) parts.push({ type: 'text', text: attachedFiles.length > 1 ? 'Analise estes arquivos.' : 'Analise este arquivo.' });
     apiContent = parts;
     clearFile();
@@ -1190,7 +1189,12 @@ async function _sendTools(apiContent, tipoDownload=null) {
     clearInterval(_lt);
     document.getElementById('ty')?.remove();
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.erro||'Erro '+r.status);}
-    const data = await r.json();
+    // Detecta se Railway retornou HTML de timeout em vez de JSON
+    const rawText = await r.text();
+    if (rawText.trim().startsWith('<')) {
+      throw new Error('Servidor sobrecarregado (timeout). Tente novamente em alguns segundos.');
+    }
+    const data = JSON.parse(rawText);
     const blocos = data.blocos || [];
 
     // Renderiza blocos
@@ -1261,18 +1265,26 @@ async function _sendStreaming(apiContent, tipoDownload=null) {
     document.getElementById('ty')?.remove();
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error?.message||'Erro '+r.status);}
 
+    // Lê primeiros bytes para detectar HTML de timeout do Railway
+    const reader=r.body.getReader();
+    const decoder=new TextDecoder();
+    let fullText='', buffer='';
+
+    // Primeiro chunk — verifica se é HTML
+    const firstChunk = await reader.read();
+    if (firstChunk.done) { throw new Error('Resposta vazia do servidor.'); }
+    const firstText = decoder.decode(firstChunk.value, {stream:true});
+    if (firstText.trim().startsWith('<')) {
+      throw new Error('Servidor sobrecarregado (timeout). Aguarde alguns segundos e tente novamente.');
+    }
+    buffer += firstText;
+
     document.getElementById('wlc')?.remove();
     const msgsEl=document.getElementById('msgs');
     const d=document.createElement('div'); d.className='msg a'; d.id='msg-stream';
     const msgId='m_'+Date.now()+'_stream';
     d.innerHTML=`<div class="av">✦</div><div class="mc" id="${msgId}"><span id="stream-text"></span><span class="stream-cursor"></span></div>`;
     msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight;
-
-    const reader=r.body.getReader();
-    const decoder=new TextDecoder();
-    let fullText='', buffer='';
-
-    while(true){
       const {done,value}=await reader.read();
       if(done) break;
       buffer+=decoder.decode(value,{stream:true});
