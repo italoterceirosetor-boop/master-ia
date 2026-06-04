@@ -180,136 +180,129 @@ def _md_to_rl(text):
 def gen_pdf(titulo, content, imagens=None):
     buf = io.BytesIO()
 
-    # Paleta neutra profissional
-    C_DARK   = colors.HexColor("#1a1f2e")
-    C_MID    = colors.HexColor("#2d3748")
+    # Paleta corporativa
+    C_DARK   = colors.HexColor("#1e2532")
+    C_NAVY   = colors.HexColor("#1a365d")
     C_ACCENT = colors.HexColor("#2b6cb0")
-    C_LIGHT  = colors.HexColor("#ebf4ff")
-    C_BG     = colors.HexColor("#f8fafc")
-    C_BORDER = colors.HexColor("#cbd5e0")
+    C_ACCENT2= colors.HexColor("#3182ce")
+    C_LIGHT  = colors.HexColor("#ebf8ff")
+    C_BG     = colors.HexColor("#f7fafc")
+    C_BORDER = colors.HexColor("#bee3f8")
     C_MUTED  = colors.HexColor("#718096")
     C_WHITE  = colors.white
-    C_STRIPE = colors.HexColor("#f7fafc")
+    C_STRIPE = colors.HexColor("#f0f7ff")
+    C_TEXT   = colors.HexColor("#2d3748")
+
+    PAGE_W, PAGE_H = A4
+    LM = RM = 2.2*cm
+    TM = 2.0*cm
+    BM = 2.2*cm
 
     doc = SimpleDocTemplate(buf, pagesize=A4,
-        topMargin=2.5*cm, bottomMargin=2.5*cm,
-        leftMargin=2.5*cm, rightMargin=2.5*cm,
-        title=titulo)
-
+        topMargin=TM, bottomMargin=BM,
+        leftMargin=LM, rightMargin=RM, title=titulo)
     W = doc.width
 
-    # ── Estilos ───────────────────────────────────────────────────────────────
     def sty(name, **kw):
         return ParagraphStyle(name, **kw)
 
-    s_cover_title = sty('ct', fontSize=26, fontName='Helvetica-Bold',
-        textColor=C_WHITE, alignment=TA_CENTER, leading=34, spaceAfter=8)
-    s_cover_date  = sty('cd', fontSize=10, textColor=colors.HexColor("#a0aec0"),
-        alignment=TA_CENTER)
-    s_h1  = sty('h1', fontSize=14, fontName='Helvetica-Bold', textColor=C_DARK,
-        spaceBefore=16, spaceAfter=6, leading=20,
-        borderPad=(0,0,4,0))
-    s_h2  = sty('h2', fontSize=12, fontName='Helvetica-Bold', textColor=C_ACCENT,
-        spaceBefore=12, spaceAfter=4, leading=16)
-    s_h3  = sty('h3', fontSize=10.5, fontName='Helvetica-Bold', textColor=C_MID,
-        spaceBefore=8, spaceAfter=3, leading=14)
-    s_h4  = sty('h4', fontSize=10, fontName='Helvetica-BoldOblique', textColor=C_MUTED,
-        spaceBefore=6, spaceAfter=2, leading=13)
-    s_body = sty('body', fontSize=10, leading=16, spaceAfter=6,
-        alignment=TA_JUSTIFY, textColor=C_DARK,
-        fontName='Helvetica')
-    s_bul  = sty('bul', fontSize=10, leading=15, leftIndent=16,
-        firstLineIndent=0, spaceAfter=3, textColor=C_DARK)
-    s_num  = sty('num', fontSize=10, leading=15, leftIndent=20,
-        firstLineIndent=-14, spaceAfter=3, textColor=C_DARK)
-    s_foot = sty('foot', fontSize=8, textColor=C_MUTED, alignment=TA_CENTER)
-    s_toc  = sty('toc', fontSize=10, textColor=C_ACCENT, leading=18,
-        leftIndent=0, spaceAfter=2)
-    s_toc2 = sty('toc2', fontSize=9.5, textColor=C_MID, leading=16,
-        leftIndent=14, spaceAfter=1)
+    s_cv_title = sty('cvt', fontSize=26, fontName='Helvetica-Bold',
+        textColor=C_WHITE, alignment=TA_CENTER, leading=34, spaceAfter=4)
+    s_cv_sub   = sty('cvs', fontSize=10, textColor=colors.HexColor("#90cdf4"),
+        alignment=TA_CENTER, leading=15)
+    s_toc_h    = sty('toch', fontSize=8, fontName='Helvetica-Bold',
+        textColor=C_MUTED, spaceAfter=4)
+    s_toc1     = sty('toc1', fontSize=10, textColor=C_NAVY, leading=18,
+        fontName='Helvetica-Bold', spaceAfter=2)
+    s_toc2     = sty('toc2', fontSize=9.5, textColor=C_ACCENT, leading=16,
+        leftIndent=16, spaceAfter=1)
+    s_h1  = sty('h1p', fontSize=13, fontName='Helvetica-Bold', textColor=C_NAVY,
+        spaceBefore=16, spaceAfter=6, leading=18, keepWithNext=1)
+    s_h2  = sty('h2p', fontSize=11.5, fontName='Helvetica-Bold', textColor=C_ACCENT,
+        spaceBefore=12, spaceAfter=4, leading=16, keepWithNext=1)
+    s_h3  = sty('h3p', fontSize=10.5, fontName='Helvetica-Bold', textColor=C_TEXT,
+        spaceBefore=8, spaceAfter=3, leading=15, keepWithNext=1)
+    s_h4  = sty('h4p', fontSize=10, fontName='Helvetica-BoldOblique', textColor=C_MUTED,
+        spaceBefore=6, spaceAfter=2, leading=14)
+    s_body = sty('bdyp', fontSize=10, leading=17, spaceAfter=7,
+        alignment=TA_JUSTIFY, textColor=C_TEXT)
+    s_bul  = sty('bulp', fontSize=10, leading=15, leftIndent=18,
+        firstLineIndent=0, spaceAfter=3, textColor=C_TEXT)
+    s_num  = sty('nump', fontSize=10, leading=15, leftIndent=22,
+        firstLineIndent=-14, spaceAfter=3, textColor=C_TEXT)
+    s_foot = sty('footp', fontSize=7.5, textColor=C_MUTED, alignment=TA_CENTER)
 
     story = []
 
-    # ── CAPA ─────────────────────────────────────────────────────────────────
+    # CAPA
     if titulo:
-        capa = Table([[Paragraph(titulo, s_cover_title)],
-                      [Paragraph(now_str(), s_cover_date)]],
-                     colWidths=[W])
+        capa = Table([[Paragraph(titulo, s_cv_title)],
+                      [Paragraph(now_str(), s_cv_sub)]], colWidths=[W])
         capa.setStyle(TableStyle([
-            ('BACKGROUND',    (0,0), (-1,-1), C_DARK),
-            ('TOPPADDING',    (0,0), (0,0),   28),
-            ('BOTTOMPADDING', (0,0), (0,0),   6),
-            ('TOPPADDING',    (0,1), (0,1),   4),
-            ('BOTTOMPADDING', (0,1), (0,1),   24),
-            ('LEFTPADDING',   (0,0), (-1,-1), 24),
-            ('RIGHTPADDING',  (0,0), (-1,-1), 24),
-            ('ROUNDEDCORNERS',(0,0), (-1,-1), [6,6,6,6]),
+            ('BACKGROUND', (0,0),(-1,-1), C_NAVY),
+            ('TOPPADDING', (0,0),(0,0), 30),('BOTTOMPADDING',(0,0),(0,0),8),
+            ('TOPPADDING', (0,1),(0,1), 4),('BOTTOMPADDING',(0,1),(0,1),26),
+            ('LEFTPADDING',(0,0),(-1,-1),20),('RIGHTPADDING',(0,0),(-1,-1),20),
         ]))
         story.append(capa)
+        bar = Table([['']], colWidths=[W], rowHeights=[5])
+        bar.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),C_ACCENT2),
+                                   ('TOPPADDING',(0,0),(-1,-1),0),
+                                   ('BOTTOMPADDING',(0,0),(-1,-1),0)]))
+        story.append(bar)
         story.append(Spacer(1, 0.4*cm))
-        # Linha accent
-        story.append(Table([['']], colWidths=[W], rowHeights=[4]))
-        story[-1].setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),C_ACCENT),
-                                        ('TOPPADDING',(0,0),(-1,-1),0),
-                                        ('BOTTOMPADDING',(0,0),(-1,-1),0)]))
-        story.append(Spacer(1, 0.6*cm))
 
-    # ── SUMÁRIO AUTOMÁTICO ────────────────────────────────────────────────────
+    # SUMÁRIO
     blocks = _pdf_parse_md(content)
-    headings = [(b['type'], b['text']) for b in blocks
+    headings = [(b['type'],b['text']) for b in blocks
                 if b['type'] in ('h1','h2') and b.get('text','').strip()
                 and b['text'].strip().lower() != (titulo or '').strip().lower()]
 
     if len(headings) >= 3:
-        toc_title = Table([['ÍNDICE']], colWidths=[W])
-        toc_title.setStyle(TableStyle([
-            ('BACKGROUND',(0,0),(-1,-1),C_BG),
-            ('FONTNAME',(0,0),(-1,-1),'Helvetica-Bold'),
-            ('FONTSIZE',(0,0),(-1,-1),9),
-            ('TEXTCOLOR',(0,0),(-1,-1),C_MUTED),
-            ('TOPPADDING',(0,0),(-1,-1),6),
-            ('BOTTOMPADDING',(0,0),(-1,-1),6),
-            ('LEFTPADDING',(0,0),(-1,-1),10),
+        toc_rows = [[Paragraph('SUMÁRIO', s_toc_h)]]
+        for h, t in headings:
+            prefix = '▶  ' if h == 'h1' else '     · '
+            toc_rows.append([Paragraph(prefix + t, s_toc1 if h=='h1' else s_toc2)])
+        toc = Table(toc_rows, colWidths=[W])
+        toc.setStyle(TableStyle([
+            ('BACKGROUND', (0,0),(-1,-1), C_BG),
+            ('BACKGROUND', (0,0),(-1,0),  colors.HexColor("#e2e8f0")),
+            ('TOPPADDING',    (0,0),(-1,-1),4),
+            ('BOTTOMPADDING', (0,0),(-1,-1),4),
+            ('LEFTPADDING',   (0,0),(-1,-1),14),
+            ('RIGHTPADDING',  (0,0),(-1,-1),14),
+            ('BOX',           (0,0),(-1,-1),0.5, C_BORDER),
         ]))
-        story.append(toc_title)
-        for htype, htxt in headings:
-            s = s_toc if htype == 'h1' else s_toc2
-            prefix = '* ' if htype == 'h1' else '  - '
-            story.append(Paragraph(prefix + htxt, s))
+        story.append(toc)
         story.append(Spacer(1, 0.5*cm))
-        story.append(HRFlowable(width='100%', thickness=0.5,
-                                 color=C_BORDER, spaceAfter=12))
 
-    # ── CONTEÚDO ──────────────────────────────────────────────────────────────
+    # CONTEÚDO
     for block in blocks:
         btype = block.get('type')
         txt   = block.get('text','')
 
-        # Pula título duplicado
-        if btype in ('h1','h2','h3') and txt.strip().lower() == (titulo or '').strip().lower():
+        if btype in ('h1',) and txt.strip().lower() == (titulo or '').strip().lower():
             continue
 
         if btype == 'h1':
-            # Caixa de seção
-            hbox = Table([[Paragraph(_md_to_rl(txt), s_h1)]], colWidths=[W])
-            hbox.setStyle(TableStyle([
-                ('BACKGROUND',(0,0),(-1,-1),C_LIGHT),
-                ('LEFTPADDING',(0,0),(-1,-1),12),
-                ('RIGHTPADDING',(0,0),(-1,-1),12),
-                ('TOPPADDING',(0,0),(-1,-1),8),
-                ('BOTTOMPADDING',(0,0),(-1,-1),8),
-                ('LINEBEFORE',(0,0),(0,-1),4,C_ACCENT),
-                ('LINEBELOW',(0,-1),(-1,-1),0.5,C_BORDER),
+            box = Table([[Paragraph(_md_to_rl(txt), s_h1)]], colWidths=[W])
+            box.setStyle(TableStyle([
+                ('BACKGROUND',    (0,0),(-1,-1), C_LIGHT),
+                ('LINEBEFORE',    (0,0),(0,-1),  5, C_ACCENT2),
+                ('TOPPADDING',    (0,0),(-1,-1), 8),
+                ('BOTTOMPADDING', (0,0),(-1,-1), 8),
+                ('LEFTPADDING',   (0,0),(-1,-1), 12),
+                ('RIGHTPADDING',  (0,0),(-1,-1), 12),
             ]))
             story.append(Spacer(1, 6))
-            story.append(hbox)
+            story.append(box)
             story.append(Spacer(1, 4))
 
         elif btype == 'h2':
             story.append(Spacer(1, 4))
             story.append(Paragraph(_md_to_rl(txt), s_h2))
-            story.append(HRFlowable(width='40%', thickness=1.5,
-                                     color=C_ACCENT, spaceAfter=4))
+            story.append(HRFlowable(width='35%', thickness=2,
+                                     color=C_ACCENT2, spaceAfter=4))
 
         elif btype == 'h3':
             story.append(Spacer(1, 2))
@@ -324,12 +317,14 @@ def gen_pdf(titulo, content, imagens=None):
         elif btype == 'bullets':
             for item in block['items']:
                 story.append(Paragraph(
-                    f'<font color="#2b6cb0">-&gt;</font>  {_md_to_rl(item)}', s_bul))
+                    '<font color="#2b6cb0" size="12">•</font>  ' + _md_to_rl(item),
+                    s_bul))
 
         elif btype == 'numbered':
             for n, item in enumerate(block['items'], 1):
                 story.append(Paragraph(
-                    f'<b><font color="#2b6cb0">{n}.</font></b>  {_md_to_rl(item)}', s_num))
+                    f'<b><font color="#2b6cb0">{n}.</font></b>  ' + _md_to_rl(item),
+                    s_num))
 
         elif btype == 'table':
             headers = block.get('headers', [])
@@ -337,30 +332,25 @@ def gen_pdf(titulo, content, imagens=None):
             if not headers: continue
             ncols = len(headers)
 
-            # Remove markdown inline das células
             def _cc(v):
                 v = str(v)
-                v = _re.sub(r'\*\*(.+?)\*\*', r'\1', v)
-                v = _re.sub(r'\*(.+?)\*',     r'\1', v)
-                v = _re.sub(r'`(.+?)`',        r'\1', v)
+                v = _re.sub(r'\*\*(.+?)\*\*', r'', v)
+                v = _re.sub(r'\*(.+?)\*',     r'', v)
+                v = _re.sub(r'`(.+?)`',        r'', v)
                 return v.strip()
 
             all_rows = [[_cc(c) for c in headers]] + [[_cc(c) for c in r] for r in rows]
-
-            # Largura proporcional ao conteúdo, com mínimo de 8%
-            col_lens = [max(len(all_rows[ri][j]) if j < len(all_rows[ri]) else 3
+            col_lens = [max(len(all_rows[ri][j]) if j<len(all_rows[ri]) else 3
                             for ri in range(len(all_rows))) for j in range(ncols)]
             total = sum(col_lens) or 1
-            min_w = W * 0.08
-            col_widths = [max(W * cl / total, min_w) for cl in col_lens]
+            col_widths = [max(W*cl/total, W*0.08) for cl in col_lens]
             sw = sum(col_widths)
-            col_widths = [w * W / sw for w in col_widths]
+            col_widths = [w*W/sw for w in col_widths]
 
             is_wide = ncols > 5
-            fs  = 7.5 if is_wide else 9
-            pad = 3   if is_wide else 5
+            fs = 7.5 if is_wide else 9
+            pad = 3  if is_wide else 5
 
-            # Detecta colunas numéricas para alinhamento à direita
             def _is_num(v):
                 v2 = v.replace('.','').replace(',','.').replace('R$','').replace('%','').replace(' ','')
                 try: float(v2); return True
@@ -368,86 +358,74 @@ def gen_pdf(titulo, content, imagens=None):
 
             num_cols = set()
             for j in range(ncols):
-                vals = [all_rows[ri][j] for ri in range(1,len(all_rows)) if j < len(all_rows[ri])]
+                vals = [all_rows[ri][j] for ri in range(1,len(all_rows)) if j<len(all_rows[ri])]
                 if vals and sum(1 for v in vals if _is_num(v)) >= len(vals)*0.6:
                     num_cols.add(j)
 
-            s_th = sty(f'TH{id(block)}', fontSize=fs, fontName='Helvetica-Bold',
+            uid = str(abs(hash(str(block))))[-6:]
+            s_th = sty('TH'+uid, fontSize=fs, fontName='Helvetica-Bold',
                        textColor=C_WHITE, alignment=TA_CENTER, leading=fs+3)
-            s_td = sty(f'TD{id(block)}', fontSize=fs, leading=fs+4, textColor=C_DARK, alignment=TA_LEFT)
-            s_tn = sty(f'TN{id(block)}', fontSize=fs, leading=fs+4, textColor=C_DARK, alignment=TA_RIGHT)
+            s_td = sty('TD'+uid, fontSize=fs, leading=fs+5, textColor=C_TEXT, alignment=TA_LEFT)
+            s_tn = sty('TN'+uid, fontSize=fs, leading=fs+5, textColor=C_TEXT, alignment=TA_RIGHT)
 
             tdata = [[Paragraph(c, s_th) for c in all_rows[0]]]
             for ri in range(1, len(all_rows)):
-                trow = []
-                for j in range(ncols):
-                    val = all_rows[ri][j] if j < len(all_rows[ri]) else ''
-                    trow.append(Paragraph(val, s_tn if j in num_cols else s_td))
-                tdata.append(trow)
+                tdata.append([Paragraph(all_rows[ri][j] if j<len(all_rows[ri]) else '',
+                                         s_tn if j in num_cols else s_td)
+                               for j in range(ncols)])
 
             tbl = Table(tdata, colWidths=col_widths, repeatRows=1, hAlign='CENTER', splitByRow=True)
             tbl.setStyle(TableStyle([
-                ('BACKGROUND',     (0,0),  (-1,0),  C_DARK),
-                ('LINEBELOW',      (0,0),  (-1,0),  2.5, C_ACCENT),
-                ('ROWBACKGROUNDS', (0,1),  (-1,-1), [C_WHITE, C_STRIPE]),
-                ('GRID',           (0,0),  (-1,-1), 0.3, C_BORDER),
-                ('BOX',            (0,0),  (-1,-1), 1.2, C_DARK),
-                ('TOPPADDING',     (0,0),  (-1,-1), pad),
-                ('BOTTOMPADDING',  (0,0),  (-1,-1), pad),
-                ('LEFTPADDING',    (0,0),  (-1,-1), pad+2),
-                ('RIGHTPADDING',   (0,0),  (-1,-1), pad+2),
-                ('VALIGN',         (0,0),  (-1,-1), 'MIDDLE'),
+                ('BACKGROUND',     (0,0),(-1,0),   C_NAVY),
+                ('LINEBELOW',      (0,0),(-1,0),   3, C_ACCENT2),
+                ('ROWBACKGROUNDS', (0,1),(-1,-1),  [C_WHITE, C_STRIPE]),
+                ('GRID',           (0,0),(-1,-1),  0.4, C_BORDER),
+                ('BOX',            (0,0),(-1,-1),  1.5, C_NAVY),
+                ('TOPPADDING',     (0,0),(-1,-1),  pad+1),
+                ('BOTTOMPADDING',  (0,0),(-1,-1),  pad+1),
+                ('LEFTPADDING',    (0,0),(-1,-1),  pad+3),
+                ('RIGHTPADDING',   (0,0),(-1,-1),  pad+3),
+                ('VALIGN',         (0,0),(-1,-1),  'MIDDLE'),
             ]))
-            story.append(Spacer(1, 8))
-            story.append(tbl)
             story.append(Spacer(1, 10))
+            story.append(tbl)
+            story.append(Spacer(1, 12))
 
         elif btype == 'hr':
             story.append(HRFlowable(width='100%', thickness=0.5,
                                      color=C_BORDER, spaceBefore=6, spaceAfter=6))
-        elif btype == 'space':
-            story.append(Spacer(1, 4))
 
-    # ── IMAGENS GERADAS ───────────────────────────────────────────────────────
+    # IMAGENS
     if imagens:
         from reportlab.platypus import Image as RLImage
         story.append(Spacer(1, 8))
         story.append(HRFlowable(width='100%', thickness=0.5, color=C_BORDER))
-        story.append(Spacer(1, 6))
         for img_info in imagens:
             try:
                 img_data = base64.b64decode(img_info['b64'])
-                img_buf  = io.BytesIO(img_data)
-                img_rl   = RLImage(img_buf, width=W, height=W*0.55)
-                legenda  = img_info.get('legenda','')
-                story.append(img_rl)
-                if legenda:
-                    story.append(Paragraph(legenda,
-                        ParagraphStyle('leg', fontSize=8, textColor=C_MUTED,
-                                       alignment=TA_CENTER, spaceAfter=6)))
+                img_rl   = RLImage(io.BytesIO(img_data), width=W, height=W*0.55)
                 story.append(Spacer(1, 8))
+                story.append(img_rl)
+                legenda = img_info.get('legenda','')
+                if legenda:
+                    story.append(Paragraph(legenda, s_foot))
             except Exception:
                 pass
 
-    # ── RODAPÉ ────────────────────────────────────────────────────────────────
-    story.append(Spacer(1, 12))
-    story.append(HRFlowable(width='100%', thickness=0.5, color=C_BORDER))
-    story.append(Spacer(1, 4))
-    story.append(Paragraph(f"Gerado por Master IA · {now_str()}", s_foot))
-
-    # Número de página via canvas
-    def _add_page_num(canvas, doc):
+    # RODAPÉ com número de página
+    def _on_page(canvas, doc):
         canvas.saveState()
-        canvas.setFont('Helvetica', 8)
+        canvas.setFont('Helvetica', 7.5)
         canvas.setFillColor(C_MUTED)
-        canvas.drawRightString(doc.pagesize[0] - 2*cm,
-                               1.2*cm, f"Página {doc.page}")
+        canvas.setStrokeColor(C_BORDER)
+        canvas.line(LM, BM-6, PAGE_W-RM, BM-6)
+        canvas.drawString(LM, BM-16, 'Gerado por Master IA  ·  ' + now_str())
+        canvas.drawRightString(PAGE_W-RM, BM-16, f'Página {doc.page}')
         canvas.restoreState()
 
-    doc.build(story, onLaterPages=_add_page_num, onFirstPage=_add_page_num)
+    doc.build(story, onFirstPage=_on_page, onLaterPages=_on_page)
     buf.seek(0)
     return buf.read()
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  GERADOR WORD — NÍVEL PROFISSIONAL
