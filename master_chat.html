@@ -277,6 +277,10 @@ mark{background:rgba(61,126,255,.25);color:var(--accent);border-radius:2px;paddi
       style="background:var(--accent);border:none;color:white;padding:11px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:Sora,sans-serif">
       Entrar
     </button>
+    <button onclick="entrarModoLocal()"
+      style="background:none;border:1px solid var(--border);color:var(--text);padding:11px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:Sora,sans-serif">
+      Entrar Sem Servidor (Modo Local)
+    </button>
     <div style="font-size:10px;color:var(--text2);text-align:center">
       Servidor: <span id="li-srv" style="color:var(--accent2)">não configurado</span>
     </div>
@@ -465,7 +469,7 @@ const APIURL='https://api.iacontaai.com.br';
 
 let cfg={
   key: localStorage.getItem('mia_key')||'',
-  srv: 'https://master-ia-production.up.railway.app',
+  srv: localStorage.getItem('mia_srv') || 'https://master-ia-production.up.railway.app',
   model: localStorage.getItem('mia_model')  || 'claude-opus-4-7'
 };
 let msgs=[], cid=null, busy=false;
@@ -1293,6 +1297,7 @@ async function _sendStreaming(apiContent, tipoDownload=null) {
     const msgId='m_'+Date.now()+'_stream';
     d.innerHTML=`<div class="av">✦</div><div class="mc" id="${msgId}"><span id="stream-text"></span><span class="stream-cursor"></span></div>`;
     msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight;
+    while(true){
       const {done,value}=await reader.read();
       if(done) break;
       buffer+=decoder.decode(value,{stream:true});
@@ -1733,6 +1738,12 @@ function autoGerarDoc(tipo, msgId) {
         } else { showLogin(); }
       })
       .catch(() => { showLogin(); });
+  } else if (nom) {
+    session = {token: '', nome: nom, username: usr||'local'};
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('user-display').textContent = nom;
+    novoChat();
+    loadChatList();
   } else {
     showLogin();
   }
@@ -1740,6 +1751,18 @@ function autoGerarDoc(tipo, msgId) {
 
 function showLogin() {
   document.getElementById('login-screen').style.display = 'flex';
+}
+
+function entrarModoLocal(){
+  const user = document.getElementById('li-user').value.trim() || 'Usuário Local';
+  session = {token:'', nome: user, username: 'local'};
+  localStorage.setItem('mia_token', '');
+  localStorage.setItem('mia_nome', session.nome);
+  localStorage.setItem('mia_username', session.username);
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('user-display').textContent = session.nome;
+  novoChat();
+  loadChatList();
 }
 </script>
 </body>
