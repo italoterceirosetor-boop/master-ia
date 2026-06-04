@@ -71,7 +71,7 @@ def load_users():
     if USERS_FILE.exists():
         try: return json.loads(USERS_FILE.read_text())
         except: pass
-    default = {"italo": {"senha": hash_pw("master2024"), "nome": "Ítalo", "token": ""}}
+    default = {"italo": {"senha": hash_pw("master9713"), "nome": "Ítalo", "token": ""}}
     save_users(default); return default
 
 def save_users(u): USERS_FILE.write_text(json.dumps(u, ensure_ascii=False, indent=2))
