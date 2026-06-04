@@ -1104,57 +1104,14 @@ function onDrop(event) {
 }
 
 function onFileSelected(event) {
-  const file = event.target.files[0];
-  if (file) processFile(file);
+  onAnyFileSelected(event);
 }
 
+// processFile legado — redirecionado para o sistema novo
 function processFile(file) {
-  attachedFile = file;
-  const ext = file.name.split('.').pop().toLowerCase();
-  document.getElementById('file-name').textContent = '📄 ' + file.name;
-  document.getElementById('file-preview').style.display = 'flex';
-
-  if (['xlsx','xls'].includes(ext)) {
-    // Excel: converte para CSV usando SheetJS
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        // Tenta usar SheetJS se disponível
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, {type: 'array'});
-        let csvAll = '';
-        workbook.SheetNames.forEach(name => {
-          const ws = workbook.Sheets[name];
-          const csv = XLSX.utils.sheet_to_csv(ws);
-          csvAll += `=== Aba: ${name} ===\n${csv}\n\n`;
-        });
-        attachedFileData = btoa(unescape(encodeURIComponent(csvAll)));
-        attachedFile = new File([csvAll], file.name.replace(/\.xlsx?$/, '.csv'), {type:'text/csv'});
-        document.getElementById('file-name').textContent = '📊 ' + file.name + ' (convertido)';
-      } catch(e) {
-        // Fallback base64
-        const b64 = btoa(String.fromCharCode(...new Uint8Array(e.target.result)));
-        attachedFileData = b64;
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  } else {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      attachedFileData = e.target.result.split(',')[1];
-    };
-    reader.readAsDataURL(file);
-  }
+  onAnyFileSelected({ target: { files: [file] } });
 }
 
-function clearFile() {
-  attachedFile = null;
-  attachedFileData = null;
-  attachedImage = null;
-  document.getElementById('file-input').value = '';
-  document.getElementById('img-input').value = '';
-  document.getElementById('file-preview').style.display = 'none';
-}
 
 function sg(t){document.getElementById('inp').value=t;send();}
 function hk(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
