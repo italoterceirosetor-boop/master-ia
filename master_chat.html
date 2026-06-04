@@ -557,22 +557,37 @@ function copiar(id,btn){
 }
 
 async function reformatar(texto, tipo, temaOriginal=''){
-  // Se o conteúdo é muito curto (resposta introdutória + ferramentas),
-  // pede para a IA gerar o documento completo sobre o tema
-  const textoUtil = texto.replace(/\[Gráfico gerado.*?\]/g,'').replace(/\[Planilha Excel.*?\]/g,'').trim();
-  const muitoCurto = textoUtil.length < 300;
+  const textoUtil = texto
+    .replace(/\[Gráfico gerado.*?\]/g,'')
+    .replace(/\[Planilha Excel.*?\]/g,'')
+    .replace(/^Vou (criar|gerar|preparar|começar|continuar|corrigir|tentar).*$/gm,'')
+    .replace(/^(Aqui está|Segue|Claro|Ótimo|Perfeito).*$/gm,'')
+    .trim();
 
-  let inst, system;
-  if (muitoCurto && temaOriginal) {
-    // Gera o documento completo do zero sobre o tema
-    inst = `Crie um documento completo e detalhado sobre: "${temaOriginal}"\n\nUse # para título principal, ## para seções, ### para subseções, - para listas, tabelas markdown para dados comparativos. Seja completo, profissional e detalhado. Comece direto pelo # Título, sem introdução conversacional.`;
-    system = 'Você é um especialista em contabilidade e fiscal brasileiro. Crie documentos profissionais, completos e detalhados em markdown. Responda apenas com o documento, sem explicações ou comentários.';
+  const muitoCurto = textoUtil.length < 400;
+  const tema = temaOriginal.replace(/^(me envia|me manda|cria|gera|faça|faz|preciso de|quero)\s+/i,'').trim();
+
+  const system = `Você é um especialista de altíssimo nível em qualquer área do conhecimento.
+Crie documentos profissionais, completos e bem estruturados em markdown.
+REGRAS OBRIGATÓRIAS:
+- Comece SEMPRE com # Título (título real e específico, não genérico)
+- Use ## para seções principais, ### para subseções
+- Inclua tabelas markdown quando tiver dados comparativos
+- Use listas com - para itens
+- Seja completo e detalhado
+- NUNCA comece com "Claro!", "Vou criar", "Aqui está" ou similares
+- Responda APENAS com o documento em markdown, sem nenhuma explicação ou comentário fora do documento`;
+
+  let inst;
+  if (muitoCurto || texto.match(/^Vou (criar|gerar)/)) {
+    // Conteúdo introdutório — gera documento completo do zero
+    inst = `Crie um documento completo, detalhado e profissional sobre: "${tema || temaOriginal}"
+
+O documento deve ter pelo menos 5 seções bem desenvolvidas, com tabelas de dados reais, listas estruturadas e conteúdo substancial. Comece com # seguido do título real do documento.`;
   } else if (tipo === 'excel') {
-    inst = 'Reformate como planilha estruturada com tabelas markdown. Sem introdução conversacional. Comece direto com o conteúdo estruturado.';
-    system = 'Você é um formatador de documentos. Reformate o conteúdo recebido sem inventar informações novas. Responda apenas com o documento formatado em markdown, sem explicações.';
+    inst = `Estruture o seguinte conteúdo como planilha com tabelas markdown bem organizadas:\n\n${textoUtil}`;
   } else {
-    inst = 'Reformate como documento profissional estruturado. Use # para título, ## para seções, ### para subseções, - para listas, tabelas markdown para dados. Remova qualquer introdução como "Claro!", "Olá", "Segue abaixo". Comece direto pelo título. Sem despedidas ou perguntas no final.';
-    system = 'Você é um formatador de documentos. Reformate o conteúdo recebido sem inventar informações novas. Responda apenas com o documento formatado em markdown, sem explicações.';
+    inst = `Transforme o seguinte conteúdo em um documento profissional estruturado em markdown. Extraia um título real e específico para o # Título. Organize em seções claras. Adicione tabelas onde houver dados.\n\n${textoUtil}`;
   }
 
   try{
@@ -580,9 +595,9 @@ async function reformatar(texto, tipo, temaOriginal=''){
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':cfg.key,'Authorization':'Bearer '+cfg.key,'anthropic-version':'2023-06-01'},
       body:JSON.stringify({
-        model:cfg.model, max_tokens:4096,
+        model:cfg.model, max_tokens:8192,
         system,
-        messages:[{role:'user',content: inst + (muitoCurto ? '' : '\n\n---\n\n'+textoUtil)}]
+        messages:[{role:'user',content:inst}]
       })
     });
     if(!r.ok) return texto;
