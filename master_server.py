@@ -2229,12 +2229,10 @@ Responda sempre em português brasileiro. Seja extraordinário."""
                     "Authorization": f"Bearer {api_key}",
                     "x-api-key": api_key,
                     "anthropic-version": "2023-06-01",
-                    "anthropic-beta": "interleaved-thinking-2025-05-14",
                 },
                 json={
                     "model": model,
-                    "max_tokens": 16000,
-                    "thinking": {"type": "enabled", "budget_tokens": 5000},
+                    "max_tokens": 32000,
                     "system": system,
                     "tools": TOOLS,
                     "messages": msgs_loop,
@@ -2290,5 +2288,3 @@ Responda sempre em português brasileiro. Seja extraordinário."""
 
     registrar_evento("mensagem", user)
     return jsonify({"blocos": result_blocks, "stop_reason": stop_reason})
-
-
