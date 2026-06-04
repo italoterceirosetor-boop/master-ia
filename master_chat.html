@@ -1089,6 +1089,8 @@ async function send(){
   }
 
   msgs.push({role:'user', content: apiContent});
+  // Detecta se é pedido de download
+  const _tipoDownload = detectarPedidoDownload(text);
   addMsg('u', text, false);
   inp.value=''; inp.style.height='auto';
   if(msgs.length===1){
@@ -1101,16 +1103,16 @@ async function send(){
   const usarTools = !!(cfg.srv && session.token);
 
   if (usarTools) {
-    await _sendTools(apiContent);
+    await _sendTools(apiContent, _tipoDownload);
   } else {
-    await _sendStreaming(apiContent);
+    await _sendStreaming(apiContent, _tipoDownload);
   }
 
   busy=false; document.getElementById('sbtn').disabled=false;
   document.getElementById('inp').focus();
 }
 
-async function _sendTools(apiContent) {
+async function _sendTools(apiContent, tipoDownload=null) {
   try {
     setTypingLabel('Analisando...');
     // Atualiza label durante o processamento
@@ -1156,6 +1158,11 @@ async function _sendTools(apiContent) {
     if (textoPlano) msgs.push({role:'assistant', content: textoPlano});
     saveChat();
 
+    // Auto-download se pedido
+    if (tipoDownload && textoPlano) {
+      setTimeout(() => autoGerarDoc(tipoDownload, msgId), 500);
+    }
+
   } catch(e) {
     document.getElementById('ty')?.remove();
     const d=document.createElement('div'); d.className='err'; d.textContent='⚠ '+e.message;
@@ -1164,7 +1171,7 @@ async function _sendTools(apiContent) {
   }
 }
 
-async function _sendStreaming(apiContent) {
+async function _sendStreaming(apiContent, tipoDownload=null) {
   const instrucao = '[IMPORTANTE: Responda em texto corrido com markdown. NÃO use código Python, bash ou ferramentas. NÃO execute scripts. Apenas escreva a resposta diretamente em português.] ';
   const msgParaApi = {role:'user', content: instrucao + (typeof apiContent==='string' ? apiContent : JSON.stringify(apiContent))};
 
@@ -1234,6 +1241,10 @@ async function _sendStreaming(apiContent) {
     document.getElementById('msg-stream')?.removeAttribute('id');
     msgs.push({role:'assistant',content:fullText});
     saveChat();
+    // Auto-download se pedido
+    if (tipoDownload && fullText) {
+      setTimeout(() => autoGerarDoc(tipoDownload, msgId.replace('_stream','')), 500);
+    }
 
   }catch(e){
     document.getElementById('ty')?.remove();
@@ -1580,7 +1591,26 @@ function copiarTexto(texto, btn) {
 }
 
 // ── SEND COM TOOLS (substitui send anterior) ─────────────────────────────────
-// INIT
+// ── DETECÇÃO DE PEDIDO DE DOWNLOAD ──────────────────────────────────────────
+function detectarPedidoDownload(texto) {
+  const t = texto.toLowerCase();
+  if (/\b(baixa|baixar|download|envia|enviar|me manda|manda)\b.*\b(pdf)\b|\b(pdf)\b.*\b(baixa|baixar|download|envia)\b/i.test(t))
+    return 'pdf';
+  if (/\b(baixa|baixar|download|envia|enviar|me manda|manda)\b.*\b(word|docx)\b|\b(word|docx)\b.*\b(baixa|baixar|download)\b/i.test(t))
+    return 'word';
+  if (/\b(baixa|baixar|download|envia|enviar|me manda|manda)\b.*\b(excel|planilha|xlsx)\b|\b(excel|planilha|xlsx)\b.*\b(baixa|baixar|download)\b/i.test(t))
+    return 'excel';
+  return null;
+}
+
+function autoGerarDoc(tipo, msgId) {
+  // Cria um botão fake e chama gerarDoc
+  const btn = document.createElement('button');
+  btn.textContent = tipo.toUpperCase();
+  btn.className = 'ba';
+  document.getElementById(msgId)?.appendChild(btn);
+  gerarDoc(msgId, tipo, btn);
+}
 (function(){
   document.getElementById('ck').value=cfg.key;
   document.getElementById('cs').value=cfg.srv;
