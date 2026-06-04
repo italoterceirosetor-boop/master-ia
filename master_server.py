@@ -2103,6 +2103,8 @@ def chat_tools():
         "SPED, EFD-Reinf, eSocial, DCTFWeb, DARF, DIFAL, CPRB, Simples Nacional, Lucro Presumido, Lucro Real, "
         "MROSC, Lei 13.019/2014, ICMS, PIS, COFINS, ISS, IRPJ, CSLL, INSS, FGTS, NF-e, NFS-e, CT-e, "
         "Rondônia (SEFIN, SEFISC).\n\n"
+        "IMPORTANTE: Quando o usuário pedir para baixar/enviar PDF, Word ou Excel, o sistema gera o arquivo automaticamente. "
+        "Você NÃO deve explicar como fazer PDF nem pedir que copie conteúdo. Apenas gere o conteúdo em markdown que o sistema converte.\n\n"
         "Responda sempre em português brasileiro."
     )
 
