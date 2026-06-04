@@ -998,23 +998,50 @@ function onAnyFileSelected(event) {
   const files = Array.from(event.target.files);
   if (!files.length) return;
   files.forEach(file => {
-    const isImage = file.type.startsWith('image/');
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const b64 = e.target.result.split(',')[1];
-      attachedFiles.push({
-        type: isImage ? 'image' : 'file',
-        b64, mediaType: file.type||'application/octet-stream',
-        name: file.name, fileObj: file
-      });
-      // Compatibilidade legada
-      if (isImage) attachedImage = { b64, mediaType: file.type||'image/jpeg', name: file.name };
-      else { attachedFileData = b64; attachedFile = file; }
-      _renderFileChips();
-    };
-    reader.readAsDataURL(file);
+    const ext = file.name.split('.').pop().toLowerCase();
+    const isImage = file.type.startsWith('image/') || ['png','jpg','jpeg','gif','webp','bmp'].includes(ext);
+    const isExcel = ['xlsx','xls'].includes(ext);
+
+    if (isExcel) {
+      // Excel: converte para CSV via SheetJS
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, {type: 'array'});
+          let csvAll = '';
+          workbook.SheetNames.forEach(name => {
+            const ws = workbook.Sheets[name];
+            const csv = XLSX.utils.sheet_to_csv(ws);
+            csvAll += `=== Aba: ${name} ===\n${csv}\n\n`;
+          });
+          const b64 = btoa(unescape(encodeURIComponent(csvAll)));
+          attachedFiles.push({type:'file', b64, mediaType:'text/csv', name: file.name, fileObj: file});
+          attachedFileData = b64;
+          attachedFile = file;
+          _renderFileChips();
+        } catch(err) {
+          console.error('Erro ao ler Excel:', err);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const b64 = e.target.result.split(',')[1];
+        attachedFiles.push({
+          type: isImage ? 'image' : 'file',
+          b64, mediaType: file.type||'application/octet-stream',
+          name: file.name, fileObj: file
+        });
+        if (isImage) attachedImage = { b64, mediaType: file.type||'image/jpeg', name: file.name };
+        else { attachedFileData = b64; attachedFile = file; }
+        _renderFileChips();
+      };
+      reader.readAsDataURL(file);
+    }
   });
-  event.target.value = ''; // permite reselecionar mesmos arquivos
+  if (event.target && event.target.value !== undefined) event.target.value = '';
 }
 
 function onImageSelected(event){ onAnyFileSelected(event); }
@@ -1149,11 +1176,18 @@ async function send(){
           parts.push({ type: 'text', text: `\n\n[Arquivo: ${f.name}]` });
         }
       } else if (['xlsx','xls'].includes(ext)) {
+        // Excel já foi convertido para CSV no onAnyFileSelected
         try {
           const decoded = decodeURIComponent(escape(atob(f.b64)));
           parts.push({ type: 'text', text: `\n\n--- Planilha: ${f.name} ---\n${decoded}` });
         } catch(e) {
-          parts.push({ type: 'text', text: `\n\n[Planilha: ${f.name} — não foi possível ler]` });
+          // Fallback: tenta sem decode
+          try {
+            const decoded = atob(f.b64);
+            parts.push({ type: 'text', text: `\n\n--- Planilha: ${f.name} ---\n${decoded}` });
+          } catch(e2) {
+            parts.push({ type: 'text', text: `\n\n[Planilha: ${f.name} — erro ao ler]` });
+          }
         }
       } else if (ext === 'docx') {
         parts.push({ type: 'document', source: { type: 'base64', media_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', data: f.b64 } });
