@@ -93,7 +93,14 @@ def registrar_evento(tipo, usuario, detalhe=""):
 #  ROTAS BÁSICAS
 # ══════════════════════════════════════════════════════════════════
 @app.route("/", methods=["GET"])
-def index(): return jsonify({"status":"Master IA v3.0 online","ts":now_str()})
+def index():
+    html = Path(__file__).parent / "master_chat.html"
+    if html.exists():
+        return html.read_text(encoding="utf-8")
+    return jsonify({"status":"Master IA v3.0 online","ts":now_str()})
+
+@app.route("/status", methods=["GET"])
+def status(): return jsonify({"status":"Master IA v3.0 online","ts":now_str()})
 
 @app.route("/health", methods=["GET"])
 def health(): return jsonify({"ok":True})
