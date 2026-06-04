@@ -89,15 +89,21 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
 .typing span:nth-child(2){animation-delay:.2s;background:var(--accent2);}
 .typing span:nth-child(3){animation-delay:.4s;}
 .err{background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);color:#ff8fa3;padding:11px 15px;border-radius:9px;font-size:13px;max-width:800px;align-self:center;width:100%;}
-.iarea{padding:14px 20px 18px;background:var(--surface);border-top:1px solid var(--border);}
-.iw{max-width:800px;margin:0 auto;display:flex;gap:8px;align-items:flex-end;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:9px 10px;transition:border-color .2s;}
+.iarea{padding:6px 14px 8px;background:var(--surface);border-top:1px solid var(--border);}
+.iw{max-width:800px;margin:0 auto;display:flex;gap:6px;align-items:flex-end;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:6px 8px;transition:border-color .2s;}
 .iw:focus-within{border-color:var(--accent);}
-#inp{flex:1;background:none;border:none;color:var(--text);font-size:13.5px;font-family:'Sora',sans-serif;outline:none;resize:none;max-height:110px;line-height:1.5;min-height:21px;}
+#inp{flex:1;background:none;border:none;color:var(--text);font-size:13px;font-family:'Sora',sans-serif;outline:none;resize:none;max-height:80px;line-height:1.5;min-height:20px;}
 #inp::placeholder{color:var(--text2);}
-#sbtn{width:34px;height:34px;background:var(--accent);border:none;border-radius:7px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
+#sbtn{width:30px;height:30px;background:var(--accent);border:none;border-radius:6px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
 #sbtn:hover{background:#5590ff;transform:scale(1.05);}
 #sbtn:disabled{background:var(--border);cursor:not-allowed;transform:none;}
-#sbtn svg{width:15px;height:15px;}
+#sbtn svg{width:14px;height:14px;}
+/* Bloco Python — oculto por padrão, expande ao clicar */
+.code-block .code-body{display:none!important;}
+.code-block .code-body.expanded{display:block!important;}
+.code-block{cursor:pointer;}
+/* Exec result sempre visível */
+.exec-result{display:block!important;}
 .hint{text-align:center;font-size:10px;color:var(--text2);margin-top:6px;max-width:800px;margin-left:auto;margin-right:auto;}
 @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
@@ -971,12 +977,12 @@ function onFileSelected(event){ onAnyFileSelected(event); }
 function toggleCode(id) {
   const el = document.getElementById(id);
   if (!el) return;
-  const isHidden = el.style.display === 'none';
-  el.style.display = isHidden ? 'block' : 'none';
+  const isExpanded = el.classList.contains('expanded');
+  el.classList.toggle('expanded', !isExpanded);
   const header = el.previousElementSibling;
   if (header) {
     const hint = header.querySelector('span span');
-    if (hint) hint.textContent = isHidden ? '(clique para recolher)' : '(clique para expandir)';
+    if (hint) hint.textContent = isExpanded ? '(clique para expandir)' : '(clique para recolher)';
   }
 }
 
