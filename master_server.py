@@ -2160,7 +2160,10 @@ def chat_tools():
         "REGRA CRÍTICA — USO DE FERRAMENTAS:\n"
         "Use ferramentas SOMENTE quando o usuário usar estas palavras: gráfico, grafico, chart, planilha, excel, xlsx, "
         "rode, execute, calcule com python, mostre código, analise dados, processe, crie planilha, gere excel.\n"
-        "Se o usuário pedir PDF, Word, documento, relatório, explique, me fala sobre → RESPONDA EM TEXTO MARKDOWN DIRETO.\n\n"
+        "Se o usuário pedir PDF, Word, documento, relatório → ESCREVA O CONTEÚDO EM MARKDOWN DIRETO. "
+        "O sistema converte automaticamente para PDF ou Word — você NÃO precisa fazer nada além de escrever o conteúdo. "
+        "NUNCA diga que não pode gerar PDF. NUNCA peça para o usuário copiar e colar. NUNCA explique como exportar. "
+        "Apenas escreva o documento em markdown e o sistema cuida do resto.\n\n"
 
         "QUANDO RESPONDER EM TEXTO:\n"
         "- Vá DIRETO ao conteúdo — NUNCA comece com 'Vou criar', 'Vou preparar', 'Vou gerar'\n"
