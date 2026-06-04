@@ -2177,7 +2177,13 @@ Responda sempre em português brasileiro. Seja extraordinário."""
                 result_text = f"Gráfico gerado com sucesso."
 
             elif tool_name == "executar_python":
-                res = tool_executar_python(tool_input["codigo"])
+                import concurrent.futures as _cf
+                with _cf.ThreadPoolExecutor(max_workers=1) as _ex:
+                    _fut = _ex.submit(tool_executar_python, tool_input["codigo"])
+                    try:
+                        res = _fut.result(timeout=25)
+                    except _cf.TimeoutError:
+                        res = {"stdout":"","stderr":"Timeout: execução excedeu 25s","erro":True,"imagem_b64":None}
                 block = {
                     "tipo": "codigo_resultado",
                     "codigo": tool_input["codigo"],
@@ -2186,7 +2192,6 @@ Responda sempre em português brasileiro. Seja extraordinário."""
                     "erro":   res["erro"],
                     "imagem_b64": res.get("imagem_b64")
                 }
-                # Resultado textual para a IA processar no próximo turno
                 out = res["stdout"] or ""
                 err = res["stderr"] or ""
                 img_info = " [imagem gerada]" if res.get("imagem_b64") else ""
@@ -2289,5 +2294,3 @@ Responda sempre em português brasileiro. Seja extraordinário."""
 
     registrar_evento("mensagem", user)
     return jsonify({"blocos": result_blocks, "stop_reason": stop_reason})
-
-
