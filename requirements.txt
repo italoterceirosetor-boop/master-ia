@@ -11,3 +11,7 @@ numpy
 Pillow
 requests
 gevent
+pytesseract
+pdfplumber
+pdf2image
+PyPDF2
