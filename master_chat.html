@@ -604,12 +604,11 @@ REGRAS ABSOLUTAS:
 
   let inst;
   if (muitoCurto || /^(Vou|Aqui|Segue|Claro)/i.test(textoUtil.trim())) {
-    inst = \`Crie um documento profissional completo e detalhado sobre: "\${tema || temaOriginal}"
-Inclua: introdução, contexto legal/técnico, como funciona na prática, tabela comparativa, exemplos e considerações finais.\`;
+    inst = 'Crie um documento profissional completo e detalhado sobre: "' + (tema || temaOriginal) + '"\nInclua: introdução, contexto legal/técnico, como funciona na prática, tabela comparativa, exemplos e considerações finais.';
   } else if (tipo === 'excel') {
-    inst = \`Organize como planilha estruturada com tabelas markdown:\n\n\${textoUtil}\`;
+    inst = 'Organize como planilha estruturada com tabelas markdown:\n\n' + textoUtil;
   } else {
-    inst = \`Transforme em documento profissional. Título específico com #. Seções bem desenvolvidas. Máximo 5 colunas nas tabelas. NUNCA ** dentro de células:\n\n\${textoUtil}\`;
+    inst = 'Transforme em documento profissional. Título específico com #. Seções bem desenvolvidas. Máximo 5 colunas nas tabelas. NUNCA ** dentro de células:\n\n' + textoUtil;
   }
 
   try{
