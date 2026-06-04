@@ -2232,7 +2232,7 @@ Responda sempre em português brasileiro. Seja extraordinário."""
                 },
                 json={
                     "model": model,
-                    "max_tokens": 32000,
+                    "max_tokens": 8192,
                     "system": system,
                     "tools": TOOLS,
                     "messages": msgs_loop,
@@ -2243,7 +2243,8 @@ Responda sempre em português brasileiro. Seja extraordinário."""
                 return jsonify({"erro": resp.text}), resp.status_code
             data = resp.json()
         except Exception as e:
-            return jsonify({"erro": str(e)}), 500
+            import traceback as _tb
+            return jsonify({"erro": str(e), "detalhe": _tb.format_exc()}), 500
 
         stop_reason = data.get("stop_reason","")
         content     = data.get("content", [])
@@ -2288,3 +2289,5 @@ Responda sempre em português brasileiro. Seja extraordinário."""
 
     registrar_evento("mensagem", user)
     return jsonify({"blocos": result_blocks, "stop_reason": stop_reason})
+
+
