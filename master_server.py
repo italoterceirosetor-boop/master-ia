@@ -1136,8 +1136,16 @@ TOOLS = [
             "Bibliotecas disponíveis sem import: pd, np, plt, io, os, re, json, datetime, "
             "math, base64, openpyxl, Document, Font, PatternFill, Alignment, requests, "
             "gen_pdf, gen_word, gen_excel.\n"
-            "Para retornar arquivo: __arquivo__['b64'] = base64.b64encode(buf.read()).decode(); "
-            "__arquivo__['nome'] = 'arquivo.xlsx'; __arquivo__['tipo'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'"
+            "REGRA CRÍTICA PARA RETORNAR ARQUIVOS — SEMPRE use este padrão exato:\n"
+            "  buf = io.BytesIO()\n"
+            "  # salva no buf (doc.save(buf) ou wb.save(buf) ou doc.build(buf))\n"
+            "  buf.seek(0)\n"
+            "  __arquivo__['b64'] = base64.b64encode(buf.read()).decode()\n"
+            "  __arquivo__['nome'] = 'arquivo.pdf'  # ou .xlsx ou .docx\n"
+            "  __arquivo__['tipo'] = 'application/pdf'  # ou spreadsheet ou wordprocessing\n"
+            "NUNCA use response = {...} ou print(pdf_data) — SEMPRE use __arquivo__\n"
+            "NUNCA use gen_pdf() do servidor diretamente — use reportlab ou python-docx no código\n"
+            "Tipos MIME: PDF=application/pdf | Excel=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet | Word=application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         ),
         "input_schema": {
             "type": "object",
