@@ -433,15 +433,15 @@ mark{background:rgba(61,126,255,.25);color:var(--accent);border-radius:2px;paddi
     </div>
   </div>
   <div class="iarea">
-    <div id="file-preview" style="display:none;max-width:800px;margin:0 auto 6px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--accent2);display:none;align-items:center;justify-content:space-between;gap:8px">
-      <span id="file-name">📄 arquivo.pdf</span>
-      <button onclick="clearFile()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px">✕</button>
+    <div id="file-preview" style="display:none;max-width:720px;margin:0 auto 6px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:11px;color:var(--accent2);align-items:center;flex-wrap:wrap;gap:5px">
+      <div id="file-chips" style="display:flex;flex-wrap:wrap;gap:5px;flex:1"></div>
+      <button onclick="clearFile()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;margin-left:auto">✕ Limpar</button>
     </div>
     <div class="iw" id="drop-zone"
       ondragover="event.preventDefault();this.style.borderColor='var(--accent2)'"
       ondragleave="this.style.borderColor=''"
       ondrop="onDrop(event)">
-      <input type="file" id="file-input" accept=".pdf,.xlsx,.xls,.csv,.txt,.docx,image/*" style="display:none" onchange="onAnyFileSelected(event)">
+      <input type="file" id="file-input" accept=".pdf,.xlsx,.xls,.csv,.txt,.docx,image/*" style="display:none" multiple onchange="onAnyFileSelected(event)">
       <button onclick="document.getElementById('file-input').click()" title="Anexar arquivo ou imagem"
         style="background:none;border:none;color:var(--text2);cursor:pointer;padding:0 4px;transition:color .2s;flex-shrink:0;display:flex;align-items:center"
         onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text2)'"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
@@ -952,29 +952,83 @@ let attachedFile = null;
 let attachedFileData = null;
 let attachedImage = null;      // { b64, mediaType, name }
 
+// Lista de múltiplos anexos
+let attachedFiles = []; // [{type:'image'|'file', b64, mediaType, name, fileObj}]
+
+function _renderFileChips() {
+  const chips = document.getElementById('file-chips');
+  if (!chips) return;
+  chips.innerHTML = attachedFiles.map((f,i) =>
+    `<span style="background:rgba(61,126,255,.15);padding:2px 8px;border-radius:12px;cursor:default" title="${f.name}">
+      ${f.type==='image'?'🖼':'📎'} ${f.name.length>20?f.name.slice(0,18)+'…':f.name}
+      <span onclick="removeAttachment(${i})" style="cursor:pointer;color:var(--danger);margin-left:4px">×</span>
+    </span>`
+  ).join('');
+  document.getElementById('file-preview').style.display = attachedFiles.length ? 'flex' : 'none';
+}
+
+function removeAttachment(i) {
+  attachedFiles.splice(i,1);
+  _renderFileChips();
+  // Compatibilidade com código legado
+  attachedImage = attachedFiles.find(f=>f.type==='image') || null;
+  const fd = attachedFiles.find(f=>f.type==='file');
+  attachedFile = fd?.fileObj || null;
+  attachedFileData = fd?.b64 || null;
+}
+
+function clearFile() {
+  attachedFiles = [];
+  attachedImage = null; attachedFile = null; attachedFileData = null;
+  _renderFileChips();
+}
+
 function onAnyFileSelected(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const isImage = file.type.startsWith('image/');
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const b64 = e.target.result.split(',')[1];
-    if (isImage) {
-      attachedImage = { b64, mediaType: file.type||'image/jpeg', name: file.name };
-      attachedFile = null; attachedFileData = null;
-    } else {
-      attachedFileData = b64;
-      attachedFile = file;
-      attachedImage = null;
-    }
-    document.getElementById('file-name').textContent = (isImage?'🖼 ':'📎 ') + file.name;
-    document.getElementById('file-preview').style.display = 'flex';
-  };
-  reader.readAsDataURL(file);
+  const files = Array.from(event.target.files);
+  if (!files.length) return;
+  files.forEach(file => {
+    const isImage = file.type.startsWith('image/');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const b64 = e.target.result.split(',')[1];
+      attachedFiles.push({
+        type: isImage ? 'image' : 'file',
+        b64, mediaType: file.type||'application/octet-stream',
+        name: file.name, fileObj: file
+      });
+      // Compatibilidade legada
+      if (isImage) attachedImage = { b64, mediaType: file.type||'image/jpeg', name: file.name };
+      else { attachedFileData = b64; attachedFile = file; }
+      _renderFileChips();
+    };
+    reader.readAsDataURL(file);
+  });
+  event.target.value = ''; // permite reselecionar mesmos arquivos
 }
 
 function onImageSelected(event){ onAnyFileSelected(event); }
 function onFileSelected(event){ onAnyFileSelected(event); }
+
+// ── COLAR IMAGEM DO CLIPBOARD (Ctrl+V / print screen) ────────────────────────
+document.addEventListener('paste', function(e) {
+  const items = (e.clipboardData || window.clipboardData).items;
+  for (let i=0; i<items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      const blob = items[i].getAsFile();
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const b64 = ev.target.result.split(',')[1];
+        const name = 'print_' + Date.now() + '.png';
+        attachedFiles.push({type:'image', b64, mediaType:'image/png', name, fileObj: blob});
+        attachedImage = { b64, mediaType:'image/png', name };
+        _renderFileChips();
+      };
+      reader.readAsDataURL(blob);
+      e.preventDefault();
+      break;
+    }
+  }
+});
 
 function toggleCode(id) {
   const el = document.getElementById(id);
@@ -1059,32 +1113,35 @@ async function send(){
   if(!cfg.key){document.getElementById('cfg').classList.add('on');document.getElementById('nk').style.display='block';return;}
   if(!cid) cid='c_'+Date.now();
 
-  // Monta conteúdo com ou sem arquivo/imagem
+  // Monta conteúdo com múltiplos arquivos/imagens
   let apiContent;
-  if (attachedImage) {
-    // Imagem — envia como vision
-    apiContent = [
-      { type: 'image', source: { type: 'base64', media_type: attachedImage.mediaType, data: attachedImage.b64 } },
-      { type: 'text', text: text || 'Analise esta imagem.' }
-    ];
-    clearFile();
-  } else if (attachedFile && attachedFileData) {
-    const ext = attachedFile.name.split('.').pop().toLowerCase();
-    if (ext === 'pdf') {
-      apiContent = [
-        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: attachedFileData } },
-        { type: 'text', text: text || 'Analise este documento.' }
-      ];
-    } else if (ext === 'txt' || ext === 'csv') {
-      try {
-        const decoded = decodeURIComponent(escape(atob(attachedFileData)));
-        apiContent = text + '\n\n--- Conteúdo: ' + attachedFile.name + ' ---\n' + decoded;
-      } catch(e) {
-        apiContent = text + '\n\n[Arquivo: ' + attachedFile.name + ']';
+  if (attachedFiles.length > 0) {
+    const parts = [];
+    // Texto primeiro
+    if (text) parts.push({ type: 'text', text });
+    // Processa cada anexo
+    for (const f of attachedFiles) {
+      if (f.type === 'image') {
+        parts.push({ type: 'image', source: { type: 'base64', media_type: f.mediaType, data: f.b64 } });
+      } else {
+        const ext = f.name.split('.').pop().toLowerCase();
+        if (ext === 'pdf') {
+          parts.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: f.b64 } });
+        } else if (ext === 'txt' || ext === 'csv') {
+          try {
+            const decoded = decodeURIComponent(escape(atob(f.b64)));
+            parts.push({ type: 'text', text: `\n\n--- Arquivo: ${f.name} ---\n${decoded}` });
+          } catch(e) {
+            parts.push({ type: 'text', text: `\n\n[Arquivo: ${f.name}]` });
+          }
+        } else {
+          parts.push({ type: 'text', text: `\n\n[Arquivo anexado: ${f.name}]` });
+        }
       }
-    } else {
-      apiContent = text + '\n\n[Arquivo: ' + attachedFile.name + ']';
     }
+    // Se não tinha texto, adiciona prompt padrão
+    if (!text) parts.push({ type: 'text', text: attachedFiles.length > 1 ? 'Analise estes arquivos.' : 'Analise este arquivo.' });
+    apiContent = parts;
     clearFile();
   } else {
     apiContent = text;
