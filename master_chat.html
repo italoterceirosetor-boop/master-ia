@@ -193,7 +193,37 @@ mark{background:rgba(61,126,255,.25);color:var(--accent);border-radius:2px;paddi
 .admin-form input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 9px;border-radius:5px;font-size:12px;font-family:'Sora',sans-serif;outline:none;}
 .admin-form input:focus{border-color:var(--accent);}
 
+/* ── Markdown rico ── */
+.mc table{border-collapse:collapse;width:100%;margin:10px 0;font-size:12px;border-radius:6px;overflow:hidden;}
+.mc th{background:rgba(61,126,255,.2);color:var(--accent);font-weight:600;padding:8px 10px;border:1px solid var(--border);text-align:left;}
+.mc td{padding:7px 10px;border:1px solid var(--border);color:var(--text);font-size:12px;}
+.mc tr:nth-child(even) td{background:rgba(255,255,255,.02);}
+.mc ul,.mc ol{padding-left:20px;margin:6px 0;}
+.mc li{margin:3px 0;font-size:13px;}
+.mc blockquote{border-left:3px solid var(--accent);padding:6px 12px;margin:8px 0;background:rgba(61,126,255,.07);border-radius:0 6px 6px 0;color:var(--text2);}
+.mc p{margin:4px 0;}
+.mc h1,.mc h2,.mc h3,.mc h4{color:var(--text);margin:10px 0 4px;}
+.mc h1{font-size:16px;border-bottom:1px solid var(--border);padding-bottom:4px;}
+.mc h2{font-size:14px;color:var(--accent);}
+.mc h3{font-size:13px;}
+.mc pre{background:#0d1117;border:1px solid var(--border);border-radius:7px;padding:10px 12px;overflow-x:auto;margin:8px 0;}
+.mc pre code{font-family:'JetBrains Mono',monospace;font-size:11px;background:none;padding:0;color:#e6edf3;}
+.mc code:not(pre code){background:rgba(61,126,255,.12);color:var(--accent2);padding:1px 5px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:11px;}
+.mc strong{color:var(--text);font-weight:600;}
+.mc em{color:var(--text2);}
+.mc hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
+/* Indicador de thinking */
+.thinking-wrap{background:rgba(61,126,255,.06);border:1px solid rgba(61,126,255,.2);border-radius:8px;padding:8px 12px;margin:6px 0;font-size:11px;color:var(--text2);}
+.thinking-header{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
+.thinking-icon{font-size:14px;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.thinking-body{margin-top:6px;font-size:10px;color:var(--text2);line-height:1.5;max-height:120px;overflow-y:auto;display:none;}
+.thinking-body.open{display:block;}
+
 </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 </head>
 <body>
 <!-- LOGIN -->
@@ -448,27 +478,35 @@ function novoChat(){
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fd(ts){const d=new Date(ts),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});}
 
-function fmt(t){
-  let s=esc(t);
-  // Tables
-  s=s.replace(/\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)+)/g,(_,h,rows)=>{
-    const ths=h.split('|').filter(c=>c.trim()).map(c=>`<th>${c.trim()}</th>`).join('');
-    const trs=rows.trim().split('\n').map(r=>`<tr>${r.split('|').filter(c=>c.trim()).map(c=>`<td>${c.trim()}</td>`).join('')}</tr>`).join('');
-    return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
-  });
-  s=s.replace(/```([\s\S]*?)```/g,'<pre><code>$1</code></pre>');
-  s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
-  s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  s=s.replace(/\*(.+?)\*/g,'<em>$1</em>');
-  // Headings — renderiza como títulos visuais, não texto com ##
-  s=s.replace(/^# (.+)$/gm,'</p><h2 style="color:#3d7eff;font-size:17px;margin:14px 0 6px;font-weight:600;border-bottom:2px solid #2a3045;padding-bottom:6px">$1</h2><p>');
-  s=s.replace(/^## (.+)$/gm,'</p><h3 style="color:#00c2a8;font-size:14px;margin:12px 0 4px;font-weight:600">$1</h3><p>');
-  s=s.replace(/^### (.+)$/gm,'</p><h4 style="color:#8892a4;font-size:13px;margin:10px 0 3px;font-weight:600">$1</h4><p>');
-  // Lists
-  s=s.replace(/^- (.+)$/gm,'</p><li style="margin:3px 0 3px 16px">$1</li><p>');
-  s=s.replace(/^\d+\. (.+)$/gm,'</p><li style="margin:3px 0 3px 16px;list-style:decimal">$1</li><p>');
-  s=s.replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
-  return `<p>${s}</p>`;
+// Configura marked.js com highlight
+function _setupMarked() {
+  if (typeof marked === 'undefined') return;
+  marked.setOptions({ breaks: true, gfm: true });
+  if (typeof hljs !== 'undefined') {
+    marked.setOptions({
+      highlight: function(code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          return hljs.highlight(code, {language: lang, ignoreIllegals: true}).value;
+        }
+        return hljs.highlightAuto(code).value;
+      }
+    });
+  }
+}
+setTimeout(_setupMarked, 300);
+
+function fmt(text) {
+  if (!text) return '';
+  const s = String(text);
+  if (typeof marked !== 'undefined') {
+    try { return marked.parse(s); } catch(e) {}
+  }
+  // Fallback
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/\n/g,'<br>');
 }
 
 function addMsg(role, content, withActs=true){
@@ -491,8 +529,22 @@ function addTyping(){
   document.getElementById('wlc')?.remove();
   const c=document.getElementById('msgs');
   const d=document.createElement('div'); d.className='msg a'; d.id='ty';
-  d.innerHTML='<div class="av">✦</div><div class="mc"><div class="typing"><span></span><span></span><span></span></div></div>';
+  d.innerHTML=`<div class="av">✦</div><div class="mc">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="display:flex;gap:4px;align-items:center">
+        <span style="width:6px;height:6px;background:var(--accent);border-radius:50%;display:inline-block;animation:bounce .8s infinite 0s"></span>
+        <span style="width:6px;height:6px;background:var(--accent);border-radius:50%;display:inline-block;animation:bounce .8s infinite .15s"></span>
+        <span style="width:6px;height:6px;background:var(--accent);border-radius:50%;display:inline-block;animation:bounce .8s infinite .3s"></span>
+      </div>
+      <span id="ty-label" style="font-size:11px;color:var(--text2)">Pensando...</span>
+    </div>
+  </div>`;
   c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+
+function setTypingLabel(txt){
+  const el=document.getElementById('ty-label');
+  if(el) el.textContent=txt;
 }
 
 function copiar(id,btn){
@@ -1003,15 +1055,22 @@ async function send(){
 
 async function _sendTools(apiContent) {
   try {
+    setTypingLabel('Analisando...');
+    // Atualiza label durante o processamento
+    const _labels = ['Analisando...','Raciocínando...','Processando...','Construindo resposta...'];
+    let _li = 0;
+    const _lt = setInterval(()=>{ _li=(_li+1)%_labels.length; setTypingLabel(_labels[_li]); }, 2500);
+
     const r = await fetch(cfg.srv + '/chat_tools', {
       method:'POST',
-      headers:{'Content-Type':'application/json','X-Token':session.token},
+      headers:{'Content-Type':'application/json','X-Token':session.token||localStorage.getItem('mia_token')||''},
       body: JSON.stringify({
         api_key:  cfg.key,
         model:    cfg.model,
         messages: msgs
       })
     });
+    clearInterval(_lt);
     document.getElementById('ty')?.remove();
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.erro||'Erro '+r.status);}
     const data = await r.json();
