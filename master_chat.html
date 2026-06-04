@@ -457,7 +457,7 @@ mark{background:rgba(61,126,255,.25);color:var(--accent);border-radius:2px;paddi
 const APIURL='https://api.iacontaai.com.br';
 let cfg={
   key:   localStorage.getItem('mia_key')    || '',
-  srv:   localStorage.getItem('mia_srv')    || 'http://172.16.1.240:5000',
+  srv:   localStorage.getItem('mia_srv') || 'https://master-ia-production.up.railway.app',
   model: localStorage.getItem('mia_model')  || 'claude-opus-4-7'
 };
 let msgs=[], cid=null, busy=false;
