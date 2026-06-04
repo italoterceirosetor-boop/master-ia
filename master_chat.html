@@ -455,17 +455,17 @@ mark{background:rgba(61,126,255,.25);color:var(--accent);border-radius:2px;paddi
 </div>
 <script>
 const APIURL='https://api.iacontaai.com.br';
-// Força URL Railway como padrão, limpa valor antigo se for localhost/IP
+// Garante URL correta antes de qualquer coisa
 (function(){
-  const srv = localStorage.getItem('mia_srv') || '';
-  if (!srv || srv.includes('172.16') || srv.includes('localhost') || srv.includes('127.0')) {
-    localStorage.setItem('mia_srv', 'https://master-ia-production.up.railway.app');
+  const s = localStorage.getItem('mia_srv')||'';
+  if(!s||s.includes('172.')||s.includes('localhost')||s.includes('127.')||s==='não configurado'){
+    localStorage.setItem('mia_srv','https://master-ia-production.up.railway.app');
   }
 })();
 
 let cfg={
-  key:   localStorage.getItem('mia_key')    || '',
-  srv:   localStorage.getItem('mia_srv') || 'https://master-ia-production.up.railway.app',
+  key: localStorage.getItem('mia_key')||'',
+  srv: 'https://master-ia-production.up.railway.app',
   model: localStorage.getItem('mia_model')  || 'claude-opus-4-7'
 };
 let msgs=[], cid=null, busy=false;
