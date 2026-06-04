@@ -2003,143 +2003,206 @@ def chat_tools():
     if not messages:
         return jsonify({"erro": "messages vazio"}), 400
 
-    system = (
-        "Você é o Master IA, assistente especializado em contabilidade, fiscal e tributário brasileiro. "
-        "Responda sempre em português. "
-        "NUNCA faça perguntas ao usuário. NUNCA peça mais detalhes. Sempre responda diretamente com o conteúdo completo. "
-        "Se o usuário pedir um documento, relatório, PDF ou explicação — responda com o conteúdo COMPLETO e DETALHADO em markdown imediatamente. "
-        "Use # para título, ## para seções, ### para subseções, listas e tabelas quando pertinente. "
-        "Use ferramentas (gráfico, Excel, Python) SOMENTE quando o usuário usar palavras como: gráfico, planilha, excel, código, calcule, execute, rode. "
-        "Para todo o resto, responda em texto/markdown direto, sem ferramentas."
-    )
+    system = """Você é o Master IA — assistente de altíssimo nível especializado em contabilidade, fiscal e tributário brasileiro.
 
-    # Limpa histórico — mantém só mensagens text simples (user/assistant string)
-    # Evita erro 500 por tool_use sem tool_result no histórico
-    msgs_limpos = []
+PERSONALIDADE E ESTILO:
+- Responda como um especialista confiante e direto, sem rodeios
+- Use linguagem técnica quando pertinente, mas sempre clara
+- Seja completo: nunca deixe uma resposta pela metade
+- NUNCA faça perguntas desnecessárias — responda sempre com o melhor que puder com as informações disponíveis
+- NUNCA diga "não posso", "não tenho acesso" — use criatividade e as ferramentas disponíveis
+
+USO DE FERRAMENTAS (Python e gráficos):
+- Use Python NATURALMENTE quando fizer sentido — cálculos de impostos, simulações, validações de CNPJ/CPF, datas, processamento de dados
+- Se o usuário pedir "quanto é X% de Y" — CALCULE com Python em vez de só escrever a fórmula
+- Se houver dados numéricos interessantes — considere gerar um gráfico sem precisar pedir permissão
+- Execute código Python para confirmar cálculos complexos antes de responder
+- Use múltiplas ferramentas em sequência quando necessário (calcular → graficar → explicar)
+
+DOCUMENTOS:
+- PDF/Word/relatório: responda com markdown COMPLETO e BEM ESTRUTURADO (# título, ## seções, tabelas)
+- Excel/planilha: use a ferramenta gerar_excel_avancado com dados reais estruturados
+- Sempre inclua tabelas quando tiver dados comparativos
+
+CONHECIMENTO FISCAL BRASILEIRO:
+- SPED, EFD-Reinf, eSocial, DCTFWeb, DARF, DARE, DIFAL, CPRB
+- Simples Nacional, Lucro Presumido, Lucro Real
+- Terceiro setor: MROSC, Lei 13.019/2014, prestação de contas
+- ICMS, PIS, COFINS, ISS, IRPJ, CSLL, INSS, FGTS
+- NF-e, NFS-e, CT-e, MDF-e — XMLs e validações
+- Rondônia: SEFIN, SEFISC, alíquotas estaduais
+
+Responda sempre em português. Seja o melhor assistente fiscal/contábil que existe."""
+
+    # ── Limpa histórico ───────────────────────────────────────────────────────
+    msgs_loop = []
     for m in messages:
-        role = m.get("role","")
+        role    = m.get("role","")
         content = m.get("content","")
         if role not in ("user","assistant"):
             continue
         if isinstance(content, str) and content.strip():
-            # Remove vazamento de <tool_call> do texto
             content = content.split("<tool_call>")[0].strip()
             if content:
-                msgs_limpos.append({"role": role, "content": content})
+                msgs_loop.append({"role": role, "content": content})
         elif isinstance(content, list):
-            # Extrai só os blocos de texto
-            texto = " ".join(b.get("text","") for b in content if b.get("type")=="text").strip()
-            if texto:
-                msgs_limpos.append({"role": role, "content": texto})
+            # Mantém blocos de imagem (vision) intactos
+            clean = []
+            for b in content:
+                if b.get("type") == "text" and b.get("text","").strip():
+                    clean.append({"type":"text","text":b["text"].split("<tool_call>")[0].strip()})
+                elif b.get("type") == "image":
+                    clean.append(b)
+            if clean:
+                msgs_loop.append({"role": role, "content": clean})
 
-    if not msgs_limpos:
+    if not msgs_loop:
         return jsonify({"erro": "messages vazio"}), 400
 
-    try:
-        resp = _requests.post(
-            "https://api.iacontaai.com.br/v1/messages",
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}",
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-            },
-            json={
-                "model": model,
-                "max_tokens": 4096,
-                "system": system,
-                "tools": TOOLS,
-                "messages": msgs_limpos,
-            },
-            timeout=120
-        )
-        if not resp.ok:
-            return jsonify({"erro": resp.text}), resp.status_code
-        data = resp.json()
-    except Exception as e:
-        return jsonify({"erro": str(e)}), 500
+    # ── Executa ferramenta e retorna resultado ───────────────────────────────
+    def executar_ferramenta(tool_name, tool_input):
+        """Executa a ferramenta e retorna (result_block, tool_result_content)."""
+        try:
+            if tool_name == "gerar_grafico_barras":
+                img = tool_grafico_barras(
+                    tool_input["labels"], tool_input["valores"],
+                    tool_input.get("titulo",""), tool_input.get("xlabel",""),
+                    tool_input.get("ylabel",""), tool_input.get("horizontal", False))
+                block = {"tipo":"imagem","b64":img,"legenda":tool_input.get("titulo","Gráfico")}
+                result_text = f"Gráfico '{tool_input.get('titulo','')}' gerado com sucesso."
 
-    # Processa blocos de resposta
+            elif tool_name == "gerar_grafico_linhas":
+                img = tool_grafico_linhas(
+                    tool_input["series"], tool_input.get("titulo",""),
+                    tool_input.get("xlabel",""), tool_input.get("ylabel",""))
+                block = {"tipo":"imagem","b64":img,"legenda":tool_input.get("titulo","Gráfico")}
+                result_text = f"Gráfico de linhas '{tool_input.get('titulo','')}' gerado com sucesso."
+
+            elif tool_name == "gerar_grafico_pizza":
+                img = tool_grafico_pizza(
+                    tool_input["labels"], tool_input["valores"],
+                    tool_input.get("titulo",""))
+                block = {"tipo":"imagem","b64":img,"legenda":tool_input.get("titulo","Pizza")}
+                result_text = f"Gráfico de pizza '{tool_input.get('titulo','')}' gerado com sucesso."
+
+            elif tool_name == "gerar_grafico_dispersao":
+                img = tool_grafico_dispersao(
+                    tool_input["series"], tool_input.get("titulo",""),
+                    tool_input.get("xlabel",""), tool_input.get("ylabel",""))
+                block = {"tipo":"imagem","b64":img,"legenda":tool_input.get("titulo","Dispersão")}
+                result_text = f"Gráfico gerado com sucesso."
+
+            elif tool_name == "executar_python":
+                res = tool_executar_python(tool_input["codigo"])
+                block = {
+                    "tipo": "codigo_resultado",
+                    "codigo": tool_input["codigo"],
+                    "stdout": res["stdout"],
+                    "stderr": res["stderr"],
+                    "erro":   res["erro"],
+                    "imagem_b64": res.get("imagem_b64")
+                }
+                # Resultado textual para a IA processar no próximo turno
+                out = res["stdout"] or ""
+                err = res["stderr"] or ""
+                img_info = " [imagem gerada]" if res.get("imagem_b64") else ""
+                result_text = f"Código executado.{img_info}\nSaída: {out[:2000]}" + (f"\nErro: {err[:500]}" if err and res["erro"] else "")
+
+            elif tool_name == "gerar_excel_avancado":
+                xls_bytes = tool_excel_avancado(
+                    tool_input["titulo"], tool_input["colunas"],
+                    tool_input["linhas"], tool_input.get("grafico_tipo"),
+                    tool_input.get("grafico_series"))
+                xls_b64 = base64.b64encode(xls_bytes).decode()
+                fname   = safe_name(tool_input["titulo"]) + ".xlsx"
+                block   = {"tipo":"excel","b64":xls_b64,"nome":fname,
+                           "legenda":tool_input["titulo"]}
+                registrar_evento("documento", user, "excel_avancado")
+                result_text = f"Planilha Excel '{tool_input['titulo']}' gerada com {len(tool_input['linhas'])} linhas."
+
+            else:
+                block = {"tipo":"erro_ferramenta","ferramenta":tool_name,
+                         "mensagem":"Ferramenta desconhecida"}
+                result_text = f"Ferramenta '{tool_name}' não reconhecida."
+
+            return block, result_text
+
+        except Exception as e:
+            block = {"tipo":"erro_ferramenta","ferramenta":tool_name,
+                     "mensagem":str(e),"trace":tb.format_exc()}
+            return block, f"Erro ao executar {tool_name}: {str(e)}"
+
+    # ── Loop multi-step (até 6 iterações) ────────────────────────────────────
     result_blocks = []
-    tool_calls_made = []
+    MAX_ITER = 6
 
-    for block in data.get("content", []):
-        btype = block.get("type")
-        if btype == "text":
-            result_blocks.append({"tipo": "texto", "conteudo": block.get("text","")})
+    for iteration in range(MAX_ITER):
+        try:
+            resp = _requests.post(
+                "https://api.iacontaai.com.br/v1/messages",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}",
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                },
+                json={
+                    "model": model,
+                    "max_tokens": 8192,
+                    "system": system,
+                    "tools": TOOLS,
+                    "messages": msgs_loop,
+                },
+                timeout=120
+            )
+            if not resp.ok:
+                return jsonify({"erro": resp.text}), resp.status_code
+            data = resp.json()
+        except Exception as e:
+            return jsonify({"erro": str(e)}), 500
 
-        elif btype == "tool_use":
-            tool_name  = block.get("name","")
-            tool_input = block.get("input", {})
-            tool_calls_made.append({"nome": tool_name, "input": tool_input})
+        stop_reason = data.get("stop_reason","")
+        content     = data.get("content", [])
 
-            try:
-                if tool_name == "gerar_grafico_barras":
-                    img = tool_grafico_barras(
-                        tool_input["labels"], tool_input["valores"],
-                        tool_input.get("titulo",""), tool_input.get("xlabel",""),
-                        tool_input.get("ylabel",""), tool_input.get("horizontal", False)
-                    )
-                    result_blocks.append({"tipo": "imagem", "b64": img,
-                                          "legenda": tool_input.get("titulo","Gráfico")})
+        # Coleta texto e tool_use desta iteração
+        tool_uses   = []
+        texto_iter  = []
 
-                elif tool_name == "gerar_grafico_linhas":
-                    img = tool_grafico_linhas(
-                        tool_input["series"],
-                        tool_input.get("titulo",""), tool_input.get("xlabel",""),
-                        tool_input.get("ylabel","")
-                    )
-                    result_blocks.append({"tipo": "imagem", "b64": img,
-                                          "legenda": tool_input.get("titulo","Gráfico de Linhas")})
+        for block in content:
+            btype = block.get("type")
+            if btype == "text":
+                txt = block.get("text","").split("<tool_call>")[0].strip()
+                if txt:
+                    texto_iter.append(txt)
+                    result_blocks.append({"tipo":"texto","conteudo":txt})
+            elif btype == "tool_use":
+                tool_uses.append(block)
 
-                elif tool_name == "gerar_grafico_pizza":
-                    img = tool_grafico_pizza(
-                        tool_input["labels"], tool_input["valores"],
-                        tool_input.get("titulo","")
-                    )
-                    result_blocks.append({"tipo": "imagem", "b64": img,
-                                          "legenda": tool_input.get("titulo","Gráfico de Pizza")})
+        # Terminou — sem mais ferramentas
+        if stop_reason != "tool_use" or not tool_uses:
+            break
 
-                elif tool_name == "gerar_grafico_dispersao":
-                    img = tool_grafico_dispersao(
-                        tool_input["series"],
-                        tool_input.get("titulo",""), tool_input.get("xlabel",""),
-                        tool_input.get("ylabel","")
-                    )
-                    result_blocks.append({"tipo": "imagem", "b64": img,
-                                          "legenda": tool_input.get("titulo","Dispersão")})
+        # Executa todas as ferramentas desta iteração
+        tool_results = []
+        for tu in tool_uses:
+            tool_name  = tu.get("name","")
+            tool_input = tu.get("input",{})
+            tool_id    = tu.get("id", f"tool_{iteration}_{tool_name}")
 
-                elif tool_name == "executar_python":
-                    res = tool_executar_python(tool_input["codigo"])
-                    result_blocks.append({
-                        "tipo": "codigo_resultado",
-                        "codigo": tool_input["codigo"],
-                        "stdout": res["stdout"],
-                        "stderr": res["stderr"],
-                        "erro":   res["erro"],
-                        "imagem_b64": res.get("imagem_b64")
-                    })
+            rb, result_text = executar_ferramenta(tool_name, tool_input)
+            result_blocks.append(rb)
 
-                elif tool_name == "gerar_excel_avancado":
-                    xls_bytes = tool_excel_avancado(
-                        tool_input["titulo"],
-                        tool_input["colunas"],
-                        tool_input["linhas"],
-                        tool_input.get("grafico_tipo"),
-                        tool_input.get("grafico_series")
-                    )
-                    xls_b64 = base64.b64encode(xls_bytes).decode()
-                    fname   = safe_name(tool_input["titulo"]) + ".xlsx"
-                    result_blocks.append({"tipo": "excel", "b64": xls_b64,
-                                          "nome": fname,
-                                          "legenda": tool_input["titulo"]})
-                    registrar_evento("documento", user, "excel_avancado")
+            tool_results.append({
+                "type":       "tool_result",
+                "tool_use_id": tool_id,
+                "content":    result_text
+            })
 
-            except Exception as e:
-                result_blocks.append({"tipo": "erro_ferramenta",
-                                       "ferramenta": tool_name,
-                                       "mensagem": str(e),
-                                       "trace": tb.format_exc()})
+        # Adiciona a resposta da IA + resultados ao histórico para próxima iteração
+        msgs_loop.append({"role": "assistant", "content": content})
+        msgs_loop.append({"role": "user",      "content": tool_results})
 
     registrar_evento("mensagem", user)
-    return jsonify({"blocos": result_blocks, "stop_reason": data.get("stop_reason","")})
+    return jsonify({"blocos": result_blocks, "stop_reason": stop_reason})
+
+
