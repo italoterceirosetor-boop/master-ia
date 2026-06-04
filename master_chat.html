@@ -101,7 +101,23 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
 .hint{text-align:center;font-size:10px;color:var(--text2);margin-top:6px;max-width:800px;margin-left:auto;margin-right:auto;}
 @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
-/* Blocos de ferramenta */
+/* Botões de ação — aparecem ao hover na mensagem */
+.msg.a{position:relative;}
+.acts-hover{
+  display:flex;gap:4px;margin-top:6px;opacity:0;
+  transition:opacity .2s;
+}
+.msg.a:hover .acts-hover{opacity:1;}
+.acts-hover .ba{
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text2);padding:3px 8px;border-radius:5px;
+  font-size:10px;cursor:pointer;font-family:'Sora',sans-serif;
+  transition:all .15s;
+}
+.acts-hover .ba:hover{border-color:var(--accent);color:var(--accent);}
+/* Oculta os acts antigos se existirem */
+.acts:not(.acts-hover){display:none!important;}
+
 .tool-block{margin:8px 0;border-radius:8px;overflow:hidden;}
 .tool-img{max-width:100%;border-radius:8px;display:block;cursor:zoom-in;transition:transform .2s;}
 .tool-img:hover{transform:scale(1.01);}
@@ -416,14 +432,10 @@ mark{background:rgba(61,126,255,.25);color:var(--accent);border-radius:2px;paddi
       ondragover="event.preventDefault();this.style.borderColor='var(--accent2)'"
       ondragleave="this.style.borderColor=''"
       ondrop="onDrop(event)">
-      <input type="file" id="file-input" accept=".pdf,.xlsx,.xls,.csv,.txt,.docx" style="display:none" onchange="onFileSelected(event)">
-      <input type="file" id="img-input" accept="image/*" style="display:none" onchange="onImageSelected(event)">
-      <button onclick="document.getElementById('file-input').click()" title="Anexar arquivo"
-        style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:0 4px;transition:color .2s;flex-shrink:0"
-        onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text2)'">📎</button>
-      <button onclick="document.getElementById('img-input').click()" title="Enviar imagem"
-        style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:0 4px;transition:color .2s;flex-shrink:0"
-        onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text2)'">🖼</button>
+      <input type="file" id="file-input" accept=".pdf,.xlsx,.xls,.csv,.txt,.docx,image/*" style="display:none" onchange="onAnyFileSelected(event)">
+      <button onclick="document.getElementById('file-input').click()" title="Anexar arquivo ou imagem"
+        style="background:none;border:none;color:var(--text2);cursor:pointer;padding:0 4px;transition:color .2s;flex-shrink:0;display:flex;align-items:center"
+        onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--text2)'"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
       <textarea id="inp" placeholder="Digite sua mensagem..." rows="1" onkeydown="hk(event)" oninput="ar(this)"></textarea>
       <button id="sbtn" onclick="send()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -515,13 +527,15 @@ function addMsg(role, content, withActs=true){
   const d=document.createElement('div'); d.className=`msg ${role}`;
   const id='m_'+Date.now()+'_'+Math.random().toString(36).slice(2);
   const av=role==='u'?'👤':'✦';
-  const acts=(role==='a'&&withActs)?`<div class="acts">
-    <button class="ba" onclick="copiar('${id}',this)">📋 Copiar</button>
-    <button class="ba" onclick="gerarDoc('${id}','pdf',this)">📄 PDF</button>
-    <button class="ba" onclick="gerarDoc('${id}','word',this)">📝 Word</button>
-    <button class="ba" onclick="gerarDoc('${id}','excel',this)">📊 Excel</button>
-  </div>`:'';
-  d.innerHTML=`<div class="av">${av}</div><div class="mc" id="${id}" data-markdown="${String(content).replace(/"/g,'&quot;')}">${fmt(content)}${acts}</div>`;
+  // Botões de ação aparecem ao passar o mouse ou quando explicitamente solicitado
+  d.innerHTML=`<div class="av">${av}</div><div class="mc" id="${id}" data-markdown="${String(content).replace(/"/g,'&quot;')}">${fmt(content)}</div>`;
+  if(role==='a'&&withActs){
+    const actsEl=document.createElement('div'); actsEl.className='acts acts-hover';
+    actsEl.innerHTML=`<button class="ba" onclick="copiar('${id}',this)">📋</button>
+    <button class="ba" onclick="gerarDoc('${id}','pdf',this)">PDF</button>
+    <button class="ba" onclick="gerarDoc('${id}','word',this)">Word</button>`;
+    d.appendChild(actsEl);
+  }
   c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
 
@@ -595,7 +609,7 @@ O documento deve ter pelo menos 5 seções bem desenvolvidas, com tabelas de dad
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':cfg.key,'Authorization':'Bearer '+cfg.key,'anthropic-version':'2023-06-01'},
       body:JSON.stringify({
-        model:cfg.model, max_tokens:8192,
+        model:cfg.model, max_tokens:16000,
         system,
         messages:[{role:'user',content:inst}]
       })
@@ -930,18 +944,40 @@ let attachedFile = null;
 let attachedFileData = null;
 let attachedImage = null;      // { b64, mediaType, name }
 
-function onImageSelected(event) {
+function onAnyFileSelected(event) {
   const file = event.target.files[0];
   if (!file) return;
+  const isImage = file.type.startsWith('image/');
   const reader = new FileReader();
   reader.onload = function(e) {
     const b64 = e.target.result.split(',')[1];
-    const mediaType = file.type || 'image/jpeg';
-    attachedImage = { b64, mediaType, name: file.name };
-    document.getElementById('file-name').textContent = '🖼 ' + file.name;
+    if (isImage) {
+      attachedImage = { b64, mediaType: file.type||'image/jpeg', name: file.name };
+      attachedFile = null; attachedFileData = null;
+    } else {
+      attachedFileData = b64;
+      attachedFile = file;
+      attachedImage = null;
+    }
+    document.getElementById('file-name').textContent = (isImage?'🖼 ':'📎 ') + file.name;
     document.getElementById('file-preview').style.display = 'flex';
   };
   reader.readAsDataURL(file);
+}
+
+function onImageSelected(event){ onAnyFileSelected(event); }
+function onFileSelected(event){ onAnyFileSelected(event); }
+
+function toggleCode(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  const header = el.previousElementSibling;
+  if (header) {
+    const hint = header.querySelector('span span');
+    if (hint) hint.textContent = isHidden ? '(clique para recolher)' : '(clique para expandir)';
+  }
 }
 
 function onDrop(event) {
@@ -1459,14 +1495,16 @@ function renderBlocos(blocos, msgId) {
 
     } else if (b.tipo === 'codigo_resultado') {
       const hlCode = syntaxHL(b.codigo);
+      const codeId = 'code_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const codeId2 = 'cb_'+Date.now();
       html += `
         <div class="tool-block">
           <div class="code-block">
-            <div class="code-header">
-              <span class="code-lang">Python</span>
-              <button class="code-copy" onclick="copiarTexto(${JSON.stringify(b.codigo)},this)">📋 Copiar</button>
+            <div class="code-header" onclick="toggleCode('${codeId2}')" style="cursor:pointer">
+              <span class="code-lang">🐍 Python <span style="font-size:9px;color:var(--text2)">(clique para expandir)</span></span>
+              <button class="code-copy" onclick="event.stopPropagation();copiarTexto(${JSON.stringify(b.codigo)},this)">📋</button>
             </div>
-            <div class="code-body">${hlCode}</div>
+            <div class="code-body" id="${codeId2}" style="display:none">${hlCode}</div>
             ${b.stdout || b.stderr || b.imagem_b64 ? `
             <div class="exec-result">
               ${b.stdout ? `<div class="exec-label">Saída</div><div class="exec-out">${esc(b.stdout)}</div>` : ''}
