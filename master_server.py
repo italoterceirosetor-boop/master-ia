@@ -1546,28 +1546,53 @@ def _fig_to_b64(fig):
 
 
 # ── Gráfico de barras ──────────────────────────────────────────────────────────
+def _safe_floats(valores):
+    """Converte lista para floats de forma segura."""
+    result = []
+    for v in valores:
+        try:
+            result.append(float(v))
+        except (TypeError, ValueError):
+            result.append(0.0)
+    return result
+
+def _safe_labels(labels):
+    """Garante que labels são strings."""
+    return [str(l) for l in labels]
+
 def tool_grafico_barras(labels, valores, titulo="", xlabel="", ylabel="", horizontal=False):
-    fig, ax = plt.subplots(figsize=(7, 4))
+    labels  = _safe_labels(labels)
+    valores = _safe_floats(valores)
+    # Garante mesmo tamanho
+    n = min(len(labels), len(valores))
+    labels, valores = labels[:n], valores[:n]
+    if n == 0: raise ValueError("Dados vazios para gráfico de barras")
+
+    fig, ax = plt.subplots(figsize=(max(7, n*0.8), 4))
     _apply_master_style(fig, [ax])
-    cores = MASTER_COLORS[:len(labels)]
-    y = np.arange(len(labels))
+    cores = [MASTER_COLORS[i % len(MASTER_COLORS)] for i in range(n)]
+    y = np.arange(n)
+    max_v = max(valores) if valores else 1
+
     if horizontal:
         bars = ax.barh(y, valores, color=cores, edgecolor="#2a3045", linewidth=0.5)
-        ax.set_yticks(y); ax.set_yticklabels(labels)
+        ax.set_yticks(y); ax.set_yticklabels(labels, fontsize=9)
         for bar, val in zip(bars, valores):
-            ax.text(bar.get_width() + max(valores)*0.01, bar.get_y()+bar.get_height()/2,
-                    f"{val:,.2f}".replace(",","X").replace(".",",").replace("X","."),
+            ax.text(bar.get_width() + max_v*0.01, bar.get_y()+bar.get_height()/2,
+                    f"{val:,.0f}".replace(",","."),
                     va="center", ha="left", color="#e8eaf0", fontsize=8)
     else:
         bars = ax.bar(y, valores, color=cores, edgecolor="#2a3045", linewidth=0.5, width=0.65)
-        ax.set_xticks(y); ax.set_xticklabels(labels, rotation=20, ha="right")
+        ax.set_xticks(y)
+        ax.set_xticklabels(labels, rotation=25, ha="right", fontsize=8)
         for bar, val in zip(bars, valores):
-            ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+max(valores)*0.01,
-                    f"{val:,.2f}".replace(",","X").replace(".",",").replace("X","."),
+            ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+max_v*0.01,
+                    f"{val:,.0f}".replace(",","."),
                     ha="center", va="bottom", color="#e8eaf0", fontsize=8)
-    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", pad=10)
-    if xlabel: ax.set_xlabel(xlabel)
-    if ylabel: ax.set_ylabel(ylabel)
+
+    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", pad=10, color="#e8eaf0")
+    if xlabel: ax.set_xlabel(xlabel, color="#8892a4")
+    if ylabel: ax.set_ylabel(ylabel, color="#8892a4")
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x,_: f"{x:,.0f}".replace(",",".")))
     fig.tight_layout()
     return _fig_to_b64(fig)
@@ -1576,61 +1601,118 @@ def tool_grafico_barras(labels, valores, titulo="", xlabel="", ylabel="", horizo
 # ── Gráfico de linhas ──────────────────────────────────────────────────────────
 def tool_grafico_linhas(series, titulo="", xlabel="", ylabel=""):
     """series: [{"nome": str, "dados": [float,...], "labels": [str,...]}]"""
-    fig, ax = plt.subplots(figsize=(7, 4))
+    if not series: raise ValueError("Series vazio")
+    # Garante que cada série é um dict com campos corretos
+    series_clean = []
+    for s in series:
+        if not isinstance(s, dict): continue
+        nome   = str(s.get("nome","Série"))
+        dados  = _safe_floats(s.get("dados") or s.get("values") or s.get("data") or [])
+        labels = _safe_labels(s.get("labels") or s.get("x") or [])
+        if dados:
+            series_clean.append({"nome": nome, "dados": dados, "labels": labels})
+
+    if not series_clean: raise ValueError("Nenhuma série válida")
+
+    fig, ax = plt.subplots(figsize=(8, 4))
     _apply_master_style(fig, [ax])
-    for i, s in enumerate(series):
+
+    for i, s in enumerate(series_clean):
         cor = MASTER_COLORS[i % len(MASTER_COLORS)]
-        xs = range(len(s["dados"]))
-        ax.plot(xs, s["dados"], color=cor, linewidth=2, marker="o", markersize=5, label=s["nome"])
-        ax.fill_between(xs, s["dados"], alpha=0.07, color=cor)
-    if series and series[0].get("labels"):
-        ax.set_xticks(range(len(series[0]["labels"])))
-        ax.set_xticklabels(series[0]["labels"], rotation=20, ha="right")
-    if len(series) > 1:
-        leg = ax.legend(fontsize=8, facecolor="#1e2330", edgecolor="#2a3045", labelcolor="#e8eaf0")
-    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", pad=10)
-    if xlabel: ax.set_xlabel(xlabel)
-    if ylabel: ax.set_ylabel(ylabel)
+        xs  = range(len(s["dados"]))
+        ax.plot(xs, s["dados"], color=cor, linewidth=2.5, marker="o",
+                markersize=5, label=s["nome"])
+        ax.fill_between(xs, s["dados"], alpha=0.08, color=cor)
+
+    # Labels do eixo X
+    all_labels = series_clean[0].get("labels",[])
+    if all_labels:
+        ax.set_xticks(range(len(all_labels)))
+        ax.set_xticklabels(all_labels, rotation=20, ha="right", fontsize=8)
+
+    if len(series_clean) > 1 or series_clean[0]["nome"] != "Série":
+        ax.legend(fontsize=8, facecolor="#1e2330", edgecolor="#2a3045", labelcolor="#e8eaf0")
+    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", pad=10, color="#e8eaf0")
+    if xlabel: ax.set_xlabel(xlabel, color="#8892a4")
+    if ylabel: ax.set_ylabel(ylabel, color="#8892a4")
     fig.tight_layout()
     return _fig_to_b64(fig)
 
 
 # ── Gráfico de pizza ───────────────────────────────────────────────────────────
 def tool_grafico_pizza(labels, valores, titulo=""):
-    fig, ax = plt.subplots(figsize=(6, 5))
+    labels  = _safe_labels(labels)
+    valores = _safe_floats(valores)
+    n = min(len(labels), len(valores))
+    labels, valores = labels[:n], valores[:n]
+    if n == 0: raise ValueError("Dados vazios para pizza")
+
+    # Limita labels longos
+    labels_short = [l[:18]+'…' if len(l) > 18 else l for l in labels]
+    cores = [MASTER_COLORS[i % len(MASTER_COLORS)] for i in range(n)]
+
+    fig, ax = plt.subplots(figsize=(7, 5.5))
     _apply_master_style(fig, [ax])
+
     wedges, texts, autotexts = ax.pie(
-        valores, labels=None,
-        colors=MASTER_COLORS[:len(labels)],
-        autopct="%1.1f%%", startangle=90,
+        valores,
+        labels=None,
+        colors=cores,
+        autopct="%1.1f%%",
+        startangle=90,
         wedgeprops=dict(edgecolor="#181c26", linewidth=1.5),
-        pctdistance=0.82
+        pctdistance=0.75
     )
     for at in autotexts:
-        at.set_color("#e8eaf0"); at.set_fontsize(8)
-    patches = [mpatches.Patch(color=MASTER_COLORS[i % len(MASTER_COLORS)], label=l)
-               for i, l in enumerate(labels)]
-    ax.legend(handles=patches, loc="lower center", bbox_to_anchor=(0.5, -0.12),
-              ncol=3, fontsize=8, facecolor="#1e2330",
-              edgecolor="#2a3045", labelcolor="#e8eaf0", framealpha=0.9)
-    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", color="#e8eaf0", pad=10)
-    fig.tight_layout()
+        at.set_color("#e8eaf0"); at.set_fontsize(9); at.set_fontweight("bold")
+
+    # Legenda fora do gráfico para não sobrepor
+    ax.legend(
+        wedges, labels_short,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.18),
+        ncol=min(3, n),
+        fontsize=8,
+        facecolor="#1e2330",
+        edgecolor="#2a3045",
+        labelcolor="#e8eaf0",
+        framealpha=0.9,
+        handlelength=1.2,
+        handleheight=0.8
+    )
+    if titulo:
+        ax.set_title(titulo, fontsize=12, fontweight="bold", color="#e8eaf0", pad=12)
+
+    fig.subplots_adjust(bottom=0.25)
     return _fig_to_b64(fig)
 
 
 # ── Gráfico de dispersão ───────────────────────────────────────────────────────
 def tool_grafico_dispersao(series, titulo="", xlabel="", ylabel=""):
     """series: [{"nome": str, "x": [float], "y": [float]}]"""
+    if not series: raise ValueError("Series vazio")
+    series_clean = []
+    for s in series:
+        if not isinstance(s, dict): continue
+        nome = str(s.get("nome",""))
+        x    = _safe_floats(s.get("x",[]))
+        y    = _safe_floats(s.get("y",[]))
+        n    = min(len(x), len(y))
+        if n > 0:
+            series_clean.append({"nome": nome, "x": x[:n], "y": y[:n]})
+    if not series_clean: raise ValueError("Nenhuma série válida")
+
     fig, ax = plt.subplots(figsize=(7, 4))
     _apply_master_style(fig, [ax])
-    for i, s in enumerate(series):
+    for i, s in enumerate(series_clean):
         cor = MASTER_COLORS[i % len(MASTER_COLORS)]
-        ax.scatter(s["x"], s["y"], color=cor, label=s["nome"], alpha=0.85, s=50, edgecolors="#181c26", linewidth=0.5)
-    if len(series) > 1:
+        ax.scatter(s["x"], s["y"], color=cor, label=s["nome"],
+                   alpha=0.85, s=50, edgecolors="#181c26", linewidth=0.5)
+    if len(series_clean) > 1:
         ax.legend(fontsize=8, facecolor="#1e2330", edgecolor="#2a3045", labelcolor="#e8eaf0")
-    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", pad=10)
-    if xlabel: ax.set_xlabel(xlabel)
-    if ylabel: ax.set_ylabel(ylabel)
+    if titulo: ax.set_title(titulo, fontsize=12, fontweight="bold", pad=10, color="#e8eaf0")
+    if xlabel: ax.set_xlabel(xlabel, color="#8892a4")
+    if ylabel: ax.set_ylabel(ylabel, color="#8892a4")
     fig.tight_layout()
     return _fig_to_b64(fig)
 
