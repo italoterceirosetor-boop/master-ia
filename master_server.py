@@ -1721,70 +1721,135 @@ def tool_grafico_dispersao(series, titulo="", xlabel="", ylabel=""):
     return _fig_to_b64(fig)
 
 
-# ── Execução de Python segura ──────────────────────────────────────────────────
-EXEC_TIMEOUT = 10  # segundos
+# ── Execução de Python — nível máximo ─────────────────────────────────────────
+EXEC_TIMEOUT = 60  # segundos (aumentado para análises pesadas)
 
 def tool_executar_python(codigo: str):
     """
-    Executa código Python em subprocesso isolado.
-    Retorna {"stdout": str, "stderr": str, "erro": bool, "imagem_b64": str|None}
+    Executa código Python in-process com acesso total às bibliotecas do servidor.
+    Suporta: pandas, numpy, matplotlib, openpyxl, docx, reportlab, requests, etc.
+    Captura stdout, imagens matplotlib, e arquivos gerados (xlsx, docx, pdf).
+    Retorna {"stdout", "stderr", "erro", "imagem_b64", "arquivo_b64", "arquivo_nome", "arquivo_tipo"}
     """
-    # Injeta captura de plt.show() → base64
-    wrapper = textwrap.dedent(f"""
-import sys, io, base64, json
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as _plt_orig
-_fig_b64 = None
+    import contextlib, threading
 
-def _capture_show():
-    global _fig_b64
-    buf = io.BytesIO()
-    _plt_orig.savefig(buf, format="png", dpi=130, bbox_inches="tight",
-                      facecolor=_plt_orig.gcf().get_facecolor())
-    _plt_orig.close()
-    buf.seek(0)
-    _fig_b64 = base64.b64encode(buf.read()).decode()
+    # Namespace isolado com todas as libs disponíveis
+    ns = {
+        # stdlib
+        "io": io, "os": os, "re": re, "json": json,
+        "datetime": datetime, "math": __import__("math"),
+        "base64": base64, "textwrap": textwrap,
+        # data
+        "pd": __import__("pandas"),
+        "np": np,
+        # viz
+        "plt": plt, "matplotlib": matplotlib,
+        # docs
+        "openpyxl": openpyxl,
+        "Document": Document,
+        "Pt": Pt, "RGBColor": RGBColor,
+        "WD_ALIGN_PARAGRAPH": WD_ALIGN_PARAGRAPH,
+        # reportlab
+        "reportlab": __import__("reportlab"),
+        # requests
+        "requests": __import__("requests"),
+        # helpers do servidor
+        "now_str": now_str, "safe_name": safe_name,
+        # resultado de arquivos (a IA escreve aqui para devolver)
+        "__arquivo__": {},
+    }
 
-import matplotlib.pyplot as plt
-plt.show = _capture_show
+    # Redireciona stdout para captura
+    stdout_buf = io.StringIO()
+    stderr_buf = io.StringIO()
+    imagem_b64 = None
+    erro       = False
 
-# ─── CÓDIGO DO USUÁRIO ───
-{codigo}
-# ─────────────────────────
+    # Intercepta plt.show() → captura imagem
+    _orig_show = plt.show
+    def _capture_show(*args, **kwargs):
+        nonlocal imagem_b64
+        try:
+            buf = io.BytesIO()
+            plt.savefig(buf, format="png", dpi=130, bbox_inches="tight",
+                        facecolor=plt.gcf().get_facecolor())
+            plt.close()
+            buf.seek(0)
+            imagem_b64 = base64.b64encode(buf.read()).decode()
+        except Exception as e:
+            stderr_buf.write(f"[warn] plt.show captura: {e}\n")
+    plt.show = _capture_show
 
-# Se gerou figura mas não chamou show, captura
-if _plt_orig.get_fignums() and _fig_b64 is None:
-    _capture_show()
-
-print("__FIG__:" + (_fig_b64 or ""), file=sys.stderr)
-""")
     try:
-        proc = subprocess.run(
-            [sys.executable, "-c", wrapper],
-            capture_output=True, text=True, timeout=EXEC_TIMEOUT
-        )
-        # Extrai imagem do stderr
-        imagem_b64 = None
-        stderr_lines = []
-        for line in proc.stderr.splitlines():
-            if line.startswith("__FIG__:"):
-                val = line[8:].strip()
-                if val:
-                    imagem_b64 = val
-            else:
-                stderr_lines.append(line)
+        result = [None]
+        exc_holder = [None]
+
+        def _run():
+            try:
+                with contextlib.redirect_stdout(stdout_buf), \
+                     contextlib.redirect_stderr(stderr_buf):
+                    exec(compile(codigo, "<master_ia>", "exec"), ns)
+                result[0] = "ok"
+            except Exception as e:
+                exc_holder[0] = e
+
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        t.join(timeout=EXEC_TIMEOUT)
+
+        if t.is_alive():
+            return {
+                "stdout": stdout_buf.getvalue().strip(),
+                "stderr": f"Timeout: execução excedeu {EXEC_TIMEOUT}s",
+                "erro": True, "imagem_b64": None,
+                "arquivo_b64": None, "arquivo_nome": None, "arquivo_tipo": None
+            }
+
+        if exc_holder[0]:
+            import traceback as _tb
+            erro = True
+            stderr_buf.write(_tb.format_exc())
+
+        # Captura figura se não chamou show()
+        if plt.get_fignums() and imagem_b64 is None:
+            _capture_show()
+
+        # Verifica se a IA gerou um arquivo (escreveu em __arquivo__)
+        arq        = ns.get("__arquivo__") or {}
+        arq_b64    = arq.get("b64")
+        arq_nome   = arq.get("nome")
+        arq_tipo   = arq.get("tipo")
+
+        # Suporte alternativo: IA pode escrever buf = io.BytesIO() e resultado["arquivo"] = buf
+        # Detecta automaticamente BytesIO salvo em variável "resultado_arquivo"
+        if not arq_b64:
+            for var_name in ("resultado_arquivo", "output_file", "arquivo_final"):
+                val = ns.get(var_name)
+                if isinstance(val, io.BytesIO):
+                    val.seek(0)
+                    arq_b64  = base64.b64encode(val.read()).decode()
+                    arq_nome = var_name + ".bin"
+                    arq_tipo = "application/octet-stream"
+                    break
+                elif isinstance(val, dict) and val.get("b64"):
+                    arq_b64  = val["b64"]
+                    arq_nome = val.get("nome", var_name)
+                    arq_tipo = val.get("tipo", "application/octet-stream")
+                    break
 
         return {
-            "stdout": proc.stdout.strip(),
-            "stderr": "\n".join(stderr_lines).strip(),
-            "erro": proc.returncode != 0,
-            "imagem_b64": imagem_b64
+            "stdout":       stdout_buf.getvalue().strip(),
+            "stderr":       stderr_buf.getvalue().strip(),
+            "erro":         erro,
+            "imagem_b64":   imagem_b64,
+            "arquivo_b64":  arq_b64,
+            "arquivo_nome": arq_nome,
+            "arquivo_tipo": arq_tipo,
         }
-    except subprocess.TimeoutExpired:
-        return {"stdout": "", "stderr": f"Timeout: execução excedeu {EXEC_TIMEOUT}s", "erro": True, "imagem_b64": None}
-    except Exception as e:
-        return {"stdout": "", "stderr": str(e), "erro": True, "imagem_b64": None}
+
+    finally:
+        plt.show = _orig_show
+        plt.close("all")
 
 
 # ── Excel avançado com gráfico ─────────────────────────────────────────────────
@@ -2091,24 +2156,74 @@ def chat_tools():
 
     system = (
         "Você é o Master IA — inteligência artificial de altíssimo nível, especialista em qualquer área.\n\n"
+
         "REGRA CRÍTICA — USO DE FERRAMENTAS:\n"
-        "Use ferramentas SOMENTE quando o usuário usar estas palavras exatas: gráfico, grafico, chart, planilha, excel, xlsx, rode, execute, calcule com python, mostre código.\n"
-        "Se o usuário pedir PDF, Word, documento, relatório, explique, me fala sobre, me conta sobre, me envia sobre, descreva, quero saber → RESPONDA EM TEXTO MARKDOWN DIRETO, NUNCA use ferramentas.\n\n"
+        "Use ferramentas SOMENTE quando o usuário usar estas palavras: gráfico, grafico, chart, planilha, excel, xlsx, "
+        "rode, execute, calcule com python, mostre código, analise dados, processe, crie planilha, gere excel.\n"
+        "Se o usuário pedir PDF, Word, documento, relatório, explique, me fala sobre → RESPONDA EM TEXTO MARKDOWN DIRETO.\n\n"
+
         "QUANDO RESPONDER EM TEXTO:\n"
         "- Vá DIRETO ao conteúdo — NUNCA comece com 'Vou criar', 'Vou preparar', 'Vou gerar'\n"
         "- Seja COMPLETO — mínimo 600 palavras para documentos solicitados\n"
         "- Use # Título, ## Seções, ### Subseções, tabelas markdown, listas\n"
         "- NUNCA diga que vai fazer algo — FAÇA imediatamente\n\n"
+
         "PERSONALIDADE:\n"
         "- Direto e confiante, sem frases vazias ('Claro!', 'Ótima pergunta!')\n"
         "- Tom adaptável — formal para documentos, conversacional para perguntas simples\n"
         "- Nunca faz perguntas desnecessárias\n\n"
+
+        "═══════════════════════════════════════════\n"
+        "PYTHON — NÍVEL MÁXIMO (igual ao Claude original)\n"
+        "═══════════════════════════════════════════\n"
+        "Você tem acesso à ferramenta executar_python com as seguintes capacidades:\n\n"
+
+        "BIBLIOTECAS DISPONÍVEIS (já importadas no namespace):\n"
+        "  pd        → pandas (DataFrames, leitura de CSV/Excel, agrupamentos, pivots)\n"
+        "  np        → numpy (cálculos numéricos, arrays, estatística)\n"
+        "  plt       → matplotlib.pyplot (gráficos customizados — plt.show() captura automático)\n"
+        "  io        → io.BytesIO, io.StringIO\n"
+        "  openpyxl  → planilhas Excel avançadas (sem precisar importar)\n"
+        "  Document  → python-docx para criar Word (já importado)\n"
+        "  Pt, RGBColor, WD_ALIGN_PARAGRAPH → formatação Word\n"
+        "  reportlab → PDFs profissionais\n"
+        "  re, json, os, datetime, math, base64, textwrap → stdlib\n"
+        "  requests  → requisições HTTP\n\n"
+
+        "COMO GERAR ARQUIVOS PARA DOWNLOAD:\n"
+        "Para devolver um arquivo (Excel, Word, PDF) ao usuário, escreva no namespace __arquivo__:\n"
+        "  buf = io.BytesIO()\n"
+        "  wb.save(buf)  # ou doc.save(buf)\n"
+        "  buf.seek(0)\n"
+        "  __arquivo__['b64']  = base64.b64encode(buf.read()).decode()\n"
+        "  __arquivo__['nome'] = 'relatorio.xlsx'\n"
+        "  __arquivo__['tipo'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'\n"
+        "  # Para Word: tipo = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'\n"
+        "  # Para PDF:  tipo = 'application/pdf'\n\n"
+
+        "QUANDO USAR executar_python:\n"
+        "- Análise de dados com pandas (agrupamentos, filtros, pivot tables)\n"
+        "- Cálculos complexos (financeiros, tributários, estatísticos)\n"
+        "- Geração de planilhas Excel com formatação customizada além do gerar_excel_avancado\n"
+        "- Geração de documentos Word com python-docx quando precisar de layout específico\n"
+        "- Gráficos matplotlib customizados (subplots, heatmaps, mapas de calor)\n"
+        "- Qualquer processamento que envolva lógica Python\n\n"
+
+        "BOAS PRÁTICAS:\n"
+        "- Sempre use print() para mostrar resultados ao usuário\n"
+        "- Prefira pd.DataFrame para organizar dados tabulares\n"
+        "- Use plt.show() após criar gráficos (captura automática)\n"
+        "- Para Excel: wb = openpyxl.Workbook() — já disponível sem import\n"
+        "- Para Word: doc = Document() — já disponível sem import\n"
+        "- Trate exceções com try/except e print do erro\n\n"
+
         "CONHECIMENTO FISCAL BRASILEIRO (especialidade máxima):\n"
         "SPED, EFD-Reinf, eSocial, DCTFWeb, DARF, DIFAL, CPRB, Simples Nacional, Lucro Presumido, Lucro Real, "
         "MROSC, Lei 13.019/2014, ICMS, PIS, COFINS, ISS, IRPJ, CSLL, INSS, FGTS, NF-e, NFS-e, CT-e, "
         "Rondônia (SEFIN, SEFISC).\n\n"
-        "IMPORTANTE: Quando o usuário pedir para baixar/enviar PDF, Word ou Excel, o sistema gera o arquivo automaticamente. "
-        "Você NÃO deve explicar como fazer PDF nem pedir que copie conteúdo. Apenas gere o conteúdo em markdown que o sistema converte.\n\n"
+
+        "IMPORTANTE: Quando o usuário pedir para baixar PDF, Word ou Excel, o sistema gera o arquivo automaticamente. "
+        "Você NÃO deve explicar como fazer — apenas gere o conteúdo markdown ou use a ferramenta correta.\n\n"
         "Responda sempre em português brasileiro."
     )
 
@@ -2175,21 +2290,26 @@ def chat_tools():
                 with _cf.ThreadPoolExecutor(max_workers=1) as _ex:
                     _fut = _ex.submit(tool_executar_python, tool_input["codigo"])
                     try:
-                        res = _fut.result(timeout=25)
+                        res = _fut.result(timeout=65)
                     except _cf.TimeoutError:
-                        res = {"stdout":"","stderr":"Timeout: execução excedeu 25s","erro":True,"imagem_b64":None}
+                        res = {"stdout":"","stderr":"Timeout: execução excedeu 60s","erro":True,
+                               "imagem_b64":None,"arquivo_b64":None,"arquivo_nome":None,"arquivo_tipo":None}
                 block = {
                     "tipo": "codigo_resultado",
                     "codigo": tool_input["codigo"],
                     "stdout": res["stdout"],
                     "stderr": res["stderr"],
                     "erro":   res["erro"],
-                    "imagem_b64": res.get("imagem_b64")
+                    "imagem_b64": res.get("imagem_b64"),
+                    "arquivo_b64":  res.get("arquivo_b64"),
+                    "arquivo_nome": res.get("arquivo_nome"),
+                    "arquivo_tipo": res.get("arquivo_tipo"),
                 }
                 out = res["stdout"] or ""
                 err = res["stderr"] or ""
                 img_info = " [imagem gerada]" if res.get("imagem_b64") else ""
-                result_text = f"Código executado.{img_info}\nSaída: {out[:2000]}" + (f"\nErro: {err[:500]}" if err and res["erro"] else "")
+                arq_info = f" [arquivo gerado: {res.get('arquivo_nome')}]" if res.get("arquivo_b64") else ""
+                result_text = f"Código executado.{img_info}{arq_info}\nSaída: {out[:3000]}" + (f"\nErro: {err[:500]}" if err and res["erro"] else "")
 
             elif tool_name == "gerar_excel_avancado":
                 xls_bytes = tool_excel_avancado(
