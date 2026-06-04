@@ -909,7 +909,6 @@ _USERS_DEFAULT = {
     "willian": {"senha": hash_pw("master123"), "nome": "Willian"},
     "augusto": {"senha": hash_pw("master123"), "nome": "Augusto"},
     "trinid":  {"senha": hash_pw("master123"), "nome": "Trinid"},
-    "rafael":  {"senha": hash_pw("master123"), "nome": "Rafael"},
     "diogo":   {"senha": hash_pw("master123"), "nome": "Diogo"},
     "bia":     {"senha": hash_pw("master123"), "nome": "Bia"},
 }
@@ -2284,3 +2283,5 @@ def chat_tools():
 
     registrar_evento("mensagem", user)
     return jsonify({"blocos": result_blocks, "stop_reason": stop_reason})
+
+
