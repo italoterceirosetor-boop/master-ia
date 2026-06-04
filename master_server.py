@@ -1085,6 +1085,49 @@ def tool_excel_avancado(titulo, colunas, linhas, grafico_tipo=None, grafico_seri
 # ══════════════════════════════════════════════════════════════════
 TOOLS = [
     {
+        "name": "buscar_web",
+        "description": (
+            "Busca informações ATUAIS na internet. Use quando o usuário perguntar sobre: "
+            "prazos fiscais atuais, legislação recente, notícias tributárias, taxas SELIC, "
+            "índices econômicos, novidades do eSocial/EFD-Reinf, qualquer informação que pode "
+            "ter mudado recentemente. SEMPRE use antes de responder sobre prazos e alíquotas."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Termos de busca em português"},
+                "num_resultados": {"type": "integer", "description": "Número de resultados (padrão 5)"}
+            },
+            "required": ["query"]
+        }
+    },
+    {
+        "name": "salvar_memoria",
+        "description": (
+            "Salva uma informação importante na memória permanente do usuário para uso futuro. "
+            "Use quando o usuário informar: nome do escritório, clientes recorrentes, preferências, "
+            "configurações, qualquer contexto que ele vai querer lembrar nas próximas conversas. "
+            "Exemplos de chaves: 'escritorio', 'cidade', 'clientes_principais', 'regime_padrao'."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "chave": {"type": "string", "description": "Nome da informação (ex: escritorio, cidade)"},
+                "valor": {"type": "string", "description": "Valor a salvar"}
+            },
+            "required": ["chave", "valor"]
+        }
+    },
+    {
+        "name": "ler_memoria",
+        "description": "Lê toda a memória salva do usuário. Use no início de conversas importantes ou quando o usuário pedir para lembrar de algo.",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
         "name": "executar_python",
         "description": (
             "Executa código Python completo. Use para: análise de dados com pandas, "
@@ -1251,6 +1294,86 @@ def tool_ler_arquivo(arquivo_b64: str, arquivo_nome: str, usar_ocr: bool = False
 
 
 # ══════════════════════════════════════════════════════════════════
+#  PONTO 1 — BUSCA NA WEB (DuckDuckGo, sem API key)
+# ══════════════════════════════════════════════════════════════════
+def tool_buscar_web(query: str, num_resultados: int = 5) -> str:
+    """Busca informações atuais na web usando DuckDuckGo."""
+    try:
+        resp = _requests.get(
+            "https://api.duckduckgo.com/",
+            params={"q": query, "format": "json", "no_html": 1,
+                    "skip_disambig": 1, "no_redirect": 1},
+            timeout=15, headers={"User-Agent": "Master-IA/3.0"}
+        )
+        data = resp.json()
+        resultados = []
+        if data.get("AbstractText"):
+            resultados.append(f"Resumo: {data['AbstractText']}")
+            if data.get("AbstractSource"):
+                resultados.append(f"Fonte: {data['AbstractSource']} — {data.get('AbstractURL','')}")
+        for topic in data.get("RelatedTopics", [])[:num_resultados]:
+            if isinstance(topic, dict) and topic.get("Text"):
+                resultados.append(f"• {topic['Text']}")
+        if not resultados:
+            return f"Busca realizada para '{query}' — sem resultados diretos. Tente uma query mais específica."
+        return f"Resultados para '{query}':\n\n" + "\n".join(resultados)
+    except Exception as e:
+        return f"[Erro na busca web: {e}]"
+
+# ══════════════════════════════════════════════════════════════════
+#  PONTO 2 — MEMÓRIA PERSISTENTE DO USUÁRIO
+# ══════════════════════════════════════════════════════════════════
+def get_perfil(username: str) -> dict:
+    f = DATA_DIR / "perfis" / f"{username}.json"
+    f.parent.mkdir(exist_ok=True, parents=True)
+    if f.exists():
+        try: return json.loads(f.read_text())
+        except: pass
+    return {}
+
+def save_perfil(username: str, perfil: dict):
+    f = DATA_DIR / "perfis" / f"{username}.json"
+    f.parent.mkdir(exist_ok=True, parents=True)
+    f.write_text(json.dumps(perfil, ensure_ascii=False, indent=2))
+
+def tool_salvar_memoria(username: str, chave: str, valor: str) -> str:
+    try:
+        perfil = get_perfil(username)
+        perfil[chave] = valor
+        perfil["_atualizado"] = now_str()
+        save_perfil(username, perfil)
+        return f"Memória salva: {chave} = {valor}"
+    except Exception as e:
+        return f"[Erro ao salvar memória: {e}]"
+
+def tool_ler_memoria(username: str) -> str:
+    try:
+        perfil = get_perfil(username)
+        if not perfil:
+            return "Nenhuma memória salva ainda."
+        linhas = [f"{k}: {v}" for k, v in perfil.items() if not k.startswith("_")]
+        return "Memória do usuário:\n\n" + "\n".join(linhas)
+    except Exception as e:
+        return f"[Erro ao ler memória: {e}]"
+
+@app.route("/perfil", methods=["GET"])
+def get_perfil_route():
+    user = auth(request)
+    if not user: return jsonify({"erro":"Não autenticado"}), 401
+    return jsonify(get_perfil(user))
+
+@app.route("/perfil", methods=["POST"])
+def save_perfil_route():
+    user = auth(request)
+    if not user: return jsonify({"erro":"Não autenticado"}), 401
+    d = request.get_json() or {}
+    perfil = get_perfil(user)
+    perfil.update(d)
+    perfil["_atualizado"] = now_str()
+    save_perfil(user, perfil)
+    return jsonify({"ok": True})
+
+# ══════════════════════════════════════════════════════════════════
 #  SYSTEM PROMPT — COMPLETO
 # ══════════════════════════════════════════════════════════════════
 SYSTEM_PROMPT = """Você é o Master IA — assistente de altíssimo nível para escritório contábil.
@@ -1269,6 +1392,10 @@ CAPACIDADES — USE ATIVAMENTE
 3. GRÁFICOS: use as ferramentas de gráfico quando pedido ou quando ajudar a visualizar dados.
 
 4. DOCUMENTOS: gere PDF/Word quando pedido — o sistema converte automaticamente.
+
+5. BUSCA WEB: use buscar_web para qualquer informação que pode ter mudado — prazos, legislação nova, taxas, índices. SEMPRE busque antes de responder sobre prazos fiscais atuais.
+
+6. MEMÓRIA: no início de cada conversa, use ler_memoria para carregar o contexto do usuário. Quando o usuário informar algo importante (nome do escritório, clientes, preferências), use salvar_memoria imediatamente.
 
 ═══════════════════════════════════════════════════════
 FLUXO PARA DOCUMENTOS (declarações, ofícios, cartas)
@@ -1417,6 +1544,26 @@ def chat_tools():
                 registrar_evento("documento", user, "excel")
                 result_text = f"Planilha '{tool_input['titulo']}' gerada com {len(tool_input['linhas'])} linhas."
 
+            elif tool_name == "buscar_web":
+                resultado = tool_buscar_web(
+                    tool_input["query"],
+                    tool_input.get("num_resultados", 5))
+                block = {"tipo":"texto","conteudo": resultado}
+                result_text = resultado
+
+            elif tool_name == "salvar_memoria":
+                resultado = tool_salvar_memoria(
+                    user,
+                    tool_input["chave"],
+                    tool_input["valor"])
+                block = {"tipo":"texto","conteudo": resultado}
+                result_text = resultado
+
+            elif tool_name == "ler_memoria":
+                resultado = tool_ler_memoria(user)
+                block = {"tipo":"texto","conteudo": resultado}
+                result_text = resultado
+
             elif tool_name == "ler_arquivo":
                 texto = tool_ler_arquivo(
                     tool_input["arquivo_b64"],
@@ -1436,6 +1583,16 @@ def chat_tools():
                      "mensagem":str(e),"trace":tb.format_exc()}
             return block, f"Erro em {tool_name}: {str(e)}"
 
+    # ── Carrega memória e monta system prompt ────────────────────
+    perfil = get_perfil(user)
+    memoria_txt = ""
+    if perfil:
+        itens = [f"{k}: {v}" for k, v in perfil.items() if not k.startswith("_")]
+        if itens:
+            memoria_txt = ("\n\nMEMORIA PERMANENTE DO USUARIO:\n" + 
+                          "\n".join(itens))
+    system_com_memoria = SYSTEM_PROMPT + memoria_txt
+
     # ── Loop multi-step ──────────────────────────────────────────
     result_blocks = []
     MAX_ITER = 8
@@ -1454,7 +1611,7 @@ def chat_tools():
                 json={
                     "model": model,
                     "max_tokens": 8192,
-                    "system": SYSTEM_PROMPT,
+                    "system": system_com_memoria,
                     "tools": TOOLS,
                     "messages": msgs_loop,
                 },
