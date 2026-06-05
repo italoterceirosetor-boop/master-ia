@@ -409,9 +409,10 @@ class _MasterPDFDoc(BaseDocTemplate):
         c.setFillColor(_C['bg']);   c.rect(0, H2-6*cm, W2, 6*cm, fill=1, stroke=0)
         c.setFillColor(_C['cyan']); c.rect(0, H2-0.28*cm, W2, 0.28*cm, fill=1, stroke=0)
         c.setFillColor(_C['gold']); c.rect(0, H2-6*cm-0.14*cm, W2, 0.14*cm, fill=1, stroke=0)
-        c.setFillColor(colors.HexColor('#1e3a5f')); c.circle(W2-0.7*cm, H2-3*cm, 2.4*cm, fill=1, stroke=0)
-        c.setFillColor(_C['blue']);  c.circle(W2-0.7*cm, H2-3*cm, 1.5*cm, fill=1, stroke=0)
-        c.setFillColor(_C['cyan']);  c.circle(W2-0.7*cm, H2-3*cm, 0.55*cm,fill=1, stroke=0)
+        if not _sem_circulos:
+            c.setFillColor(colors.HexColor(t['navy'])); c.circle(W2-0.7*cm, H2-3*cm, 2.4*cm, fill=1, stroke=0)
+            c.setFillColor(_C['blue']);  c.circle(W2-0.7*cm, H2-3*cm, 1.5*cm, fill=1, stroke=0)
+            c.setFillColor(_C['cyan']);  c.circle(W2-0.7*cm, H2-3*cm, 0.55*cm,fill=1, stroke=0)
         c.setFillColor(_C['cyan']);  c.rect(0, 0, 0.16*cm, H2-6.14*cm, fill=1, stroke=0)
         c.setFillColor(_C['bg']);    c.rect(0, 0, W2, 1.15*cm, fill=1, stroke=0)
         c.setFillColor(_C['cyan']);  c.rect(0, 1.15*cm, W2, 0.09*cm, fill=1, stroke=0)
@@ -493,8 +494,40 @@ def _parse_md(content):
         if txt: blocks.append({'type':'para','text':_md2rl(txt)})
     return blocks
 
-def gen_pdf(titulo, content, imagens=None):
-    """Gera PDF profissional Master IA a partir de markdown."""
+def gen_pdf(titulo, content, imagens=None, tema="padrao", uma_pagina=False, sem_circulos=False, subtitulo=""):
+    """Gera PDF profissional Master IA a partir de markdown.
+    tema: padrao | verde | roxo | escuro
+    uma_pagina: compacta fontes e espaços para caber em 1 folha
+    sem_circulos: remove círculos decorativos do hero
+    subtitulo: texto extra no hero
+    """
+    # Temas de cores
+    _temas = {
+        "padrao": {"bg":"#0f172a","navy":"#1e3a5f","blue":"#2563eb","cyan":"#06b6d4","gold":"#f59e0b"},
+        "verde":  {"bg":"#064e3b","navy":"#022c22","blue":"#065f46","cyan":"#10b981","gold":"#f59e0b"},
+        "roxo":   {"bg":"#1e1b4b","navy":"#312e81","blue":"#4f46e5","cyan":"#8b5cf6","gold":"#f59e0b"},
+        "escuro": {"bg":"#111827","navy":"#1f2937","blue":"#374151","cyan":"#e5e7eb","gold":"#9ca3af"},
+    }
+    t = _temas.get(tema, _temas["padrao"])
+    _C["bg"]   = colors.HexColor(t["bg"])
+    _C["navy"] = colors.HexColor(t["navy"])
+    _C["blue"] = colors.HexColor(t["blue"])
+    _C["cyan"] = colors.HexColor(t["cyan"])
+    _C["gold"] = colors.HexColor(t["gold"])
+    # Atualiza estilos que dependem das cores
+    _S["h2"]      = _ps("mh2x",  fontSize=9.5, fontName="Helvetica-Bold", textColor=_C["blue"],  leading=13, spaceBefore=8, spaceAfter=3)
+    _S["h1"]      = _ps("mh1x",  fontSize=11,  fontName="Helvetica-Bold", textColor=_C["navy"],  leading=15, spaceBefore=10, spaceAfter=4)
+    _S["formula"] = _ps("mformx",fontSize=10,  fontName="Helvetica-Bold", textColor=_C["white"], alignment=TA_CENTER, leading=14)
+    # Ajuste de escala para 1 página
+    scale = 0.82 if uma_pagina else 1.0
+    _S["body"]   = _ps("mbodyx",  fontSize=round(9*scale,1),  fontName="Helvetica", textColor=_C["text"],  leading=round(13.5*scale,1), alignment=TA_JUSTIFY, spaceAfter=round(3*scale,1))
+    _S["bullet"] = _ps("mbulx",   fontSize=round(9*scale,1),  fontName="Helvetica", textColor=_C["text"],  leading=round(13*scale,1), leftIndent=12, spaceAfter=round(2*scale,1))
+    _S["num"]    = _ps("mnumx",   fontSize=round(9*scale,1),  fontName="Helvetica", textColor=_C["text"],  leading=round(13*scale,1), leftIndent=14, firstLineIndent=-10, spaceAfter=round(2*scale,1))
+    _S["h2"]     = _ps("mh2xx",   fontSize=round(9.5*scale,1),fontName="Helvetica-Bold", textColor=_C["blue"], leading=round(13*scale,1), spaceBefore=round(8*scale,1), spaceAfter=round(3*scale,1))
+    sp_hero = 5.5*cm if not uma_pagina else 5.2*cm
+    sp_after_hero = 5.9*cm if not uma_pagina else 5.5*cm
+    sp_section = 0.18*cm if not uma_pagina else 0.08*cm
+    _sem_circulos = sem_circulos
     buf = io.BytesIO()
     doc = _MasterPDFDoc(buf, pagesize=A4,
         leftMargin=1.8*cm, rightMargin=1.8*cm,
@@ -504,22 +537,23 @@ def gen_pdf(titulo, content, imagens=None):
     story = []
 
     # ── Hero ──────────────────────────────────────────────────────
-    story.append(Spacer(1, -5.5*cm))
+    story.append(Spacer(1, -sp_hero))
 
     # Extrai subtítulo: primeiro parágrafo curto do conteúdo, ou vazio
     blocks_all = _parse_md(content)
-    subtitulo  = ''
+    _sub_auto = ''
     for b in blocks_all:
         if b['type'] == 'para' and len(b.get('text','')) < 120:
-            subtitulo = _re.sub(r'<[^>]+>', '', b['text'])[:80]
+            _sub_auto = _re.sub(r'<[^>]+>', '', b['text'])[:80]
             break
+    subtitulo_final = subtitulo if subtitulo else _sub_auto
 
     story.append(Paragraph(_md2rl(titulo or 'Documento'), _S['hero']))
-    if subtitulo:
-        story.append(Paragraph(subtitulo, _S['subtag']))
+    if subtitulo_final:
+        story.append(Paragraph(subtitulo_final, _S['subtag']))
     story.append(Spacer(1, 0.25*cm))
     story.append(Paragraph(f'Gerado por Master IA · {now_str()}', _S['subtag']))
-    story.append(Spacer(1, 5.9*cm))
+    story.append(Spacer(1, sp_after_hero))
 
     # ── Conteúdo ──────────────────────────────────────────────────
     for block in blocks_all:
@@ -608,7 +642,7 @@ def gen_pdf(titulo, content, imagens=None):
             story.append(HRFlowable(width='100%', thickness=0.5, color=_C['surf2'], spaceAfter=3))
 
         elif btype == 'space':
-            story.append(Spacer(1, 0.18*cm))
+            story.append(Spacer(1, sp_section))
 
     # ── Rodapé ────────────────────────────────────────────────────
     story.append(Spacer(1, 0.5*cm))
@@ -1149,13 +1183,22 @@ TOOLS = [
             "PREFERIR esta tool ao invés de executar_python para documentos de texto. "
             "O conteúdo deve estar em markdown: # para título principal, ## para seções, "
             "### para subseções, - para listas, tabelas markdown, **negrito**. "
-            "REGRA ABSOLUTA: todo o conteúdo em português brasileiro correto, sem uma palavra em inglês."
+            "REGRA ABSOLUTA: todo o conteúdo em português brasileiro correto, sem uma palavra em inglês.\n"
+            "Parâmetros opcionais de personalização:\n"
+            "- tema: 'padrao' (azul marinho, padrão), 'verde' (verde escuro), 'roxo' (índigo), 'escuro' (preto)\n"
+            "- uma_pagina: true para compactar tudo em 1 folha A4\n"
+            "- sem_circulos: true para remover os círculos decorativos do hero\n"
+            "- subtitulo: texto adicional abaixo do título no hero"
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "titulo": {"type": "string", "description": "Título do documento"},
-                "conteudo": {"type": "string", "description": "Conteúdo completo em markdown, em português brasileiro"}
+                "titulo":       {"type": "string", "description": "Título do documento"},
+                "conteudo":     {"type": "string", "description": "Conteúdo completo em markdown, em português brasileiro"},
+                "tema":         {"type": "string", "description": "Tema de cores: padrao | verde | roxo | escuro", "enum": ["padrao","verde","roxo","escuro"]},
+                "uma_pagina":   {"type": "boolean", "description": "true para compactar em 1 folha A4"},
+                "sem_circulos": {"type": "boolean", "description": "true para remover círculos decorativos"},
+                "subtitulo":    {"type": "string",  "description": "Subtítulo exibido no hero abaixo do título"}
             },
             "required": ["titulo", "conteudo"]
         }
@@ -1650,7 +1693,14 @@ def chat_tools():
                 result_text = f"Planilha '{tool_input['titulo']}' gerada com {len(tool_input['linhas'])} linhas."
 
             elif tool_name == "gerar_pdf_documento":
-                pdf_bytes = gen_pdf(tool_input["titulo"], tool_input["conteudo"])
+                pdf_bytes = gen_pdf(
+                    tool_input["titulo"],
+                    tool_input["conteudo"],
+                    tema=tool_input.get("tema", "padrao"),
+                    uma_pagina=tool_input.get("uma_pagina", False),
+                    sem_circulos=tool_input.get("sem_circulos", False),
+                    subtitulo=tool_input.get("subtitulo", "")
+                )
                 pdf_b64 = base64.b64encode(pdf_bytes).decode()
                 fname = safe_name(tool_input["titulo"]) + ".pdf"
                 block = {
