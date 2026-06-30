@@ -1,2 +1,0 @@
-[phases.setup]
-aptPkgs = ["tesseract-ocr", "tesseract-ocr-por", "poppler-utils", "libpoppler-dev"]
