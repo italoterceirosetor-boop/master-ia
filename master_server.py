@@ -539,7 +539,7 @@ def _parse_md(content):
         if txt: blocks.append({'type':'para','text':_md2rl(txt)})
     return blocks
 
-def gen_pdf(titulo, content, imagens=None, tema="padrao", uma_pagina=False, sem_circulos=False, subtitulo="", tamanho_fonte="normal", espacamento="normal", hero_altura="normal", mostrar_rodape=True):
+def gen_pdf(titulo, content, imagens=None, tema="padrao", uma_pagina=False, sem_circulos=False, subtitulo="", tamanho_fonte="normal", espacamento="normal", hero_altura="normal", mostrar_rodape=True, sem_hero=False):
     """Gera PDF profissional Master IA a partir de markdown.
     tema: padrao | verde | roxo | escuro
     uma_pagina: compacta fontes e espaços para caber em 1 folha
@@ -663,13 +663,14 @@ def gen_pdf(titulo, content, imagens=None, tema="padrao", uma_pagina=False, sem_
             peso_total += peso
         blocks_all = blocos_filtrados
 
-    story.append(Paragraph(_md2rl(titulo or 'Documento'), S['hero']))
-    if subtitulo_final:
-        story.append(Paragraph(subtitulo_final, S['subtag']))
-    story.append(Spacer(1, 0.25*cm))
-    if mostrar_rodape:
-        story.append(Paragraph(f'Gerado por Master IA · {now_str()}', S['subtag']))
-    story.append(Spacer(1, sp_after_hero))
+    if not sem_hero:
+        story.append(Paragraph(_md2rl(titulo or 'Documento'), S['hero']))
+        if subtitulo_final:
+            story.append(Paragraph(subtitulo_final, S['subtag']))
+        story.append(Spacer(1, 0.25*cm))
+        if mostrar_rodape:
+            story.append(Paragraph(f'Gerado por Master IA · {now_str()}', S['subtag']))
+        story.append(Spacer(1, sp_after_hero))
 
     # ── Conteúdo ──────────────────────────────────────────────────
     for block in blocks_all:
@@ -1501,6 +1502,7 @@ TOOLS = [
             "  tema: 'padrao'(azul) | 'verde' | 'roxo' | 'escuro' | 'vermelho' | 'laranja' | 'marinho' | 'cinza' | 'dourado' | 'teal'\n"
             "  uma_pagina: true = compactar em 1 folha A4\n"
             "  sem_circulos: true = remove círculos decorativos do hero\n"
+            "  sem_hero: true = remove completamente o bloco de cabeçalho/título visual do topo\n"
             "  mostrar_rodape: SEMPRE passe false (padrão obrigatório) — só passe true se o usuário\n"
             "                  pedir explicitamente para mostrar 'Gerado por Master IA'.\n"
             "MAPEAMENTO OBRIGATÓRIO de pedido para parâmetro:\n"
@@ -1511,6 +1513,7 @@ TOOLS = [
             "  'só uma página/folha' → uma_pagina=true\n"
             "  'compacto' → uma_pagina=true, espacamento='compacto'\n"
             "  'sem círculos' → sem_circulos=true\n"
+            "  'sem cabeçalho' / 'sem hero' / 'sem título no topo' → sem_hero=true\n"
             "  'verde/roxo/escuro/vermelho/laranja/marinho/cinza/dourado/teal' → tema correspondente\n"
             "Use executar_python com reportlab APENAS quando o usuário pedir formatação totalmente\n"
             "customizada que os parâmetros acima não cobrem (ex: paisagem, múltiplas colunas, imagens)."
@@ -1523,6 +1526,7 @@ TOOLS = [
                 "tema":           {"type": "string",  "enum": ["padrao","verde","roxo","escuro","vermelho","laranja","marinho","cinza","dourado","teal"]},
                 "uma_pagina":     {"type": "boolean"},
                 "sem_circulos":   {"type": "boolean"},
+                "sem_hero":       {"type": "boolean"},
                 "tamanho_fonte":  {"type": "string",  "enum": ["pequeno","normal","grande","muito_grande"]},
                 "espacamento":    {"type": "string",  "enum": ["compacto","normal","espacoso"]},
                 "hero_altura":    {"type": "string",  "enum": ["pequeno","normal","grande"]},
@@ -2723,8 +2727,9 @@ CAPACIDADES COMPLETAS v4.0 — USE TODAS ATIVAMENTE
 3. DOCUMENTOS PROFISSIONAIS:
    - PDF:        gerar_pdf_documento — padrão para todos os PDFs. SEMPRE passe mostrar_rodape=false
                  e sem_circulos=true por padrão, a não ser que o usuário peça explicitamente.
-                 Use executar_python com reportlab APENAS para formatações avançadas que os
-                 parâmetros da tool não cobrem (paisagem, múltiplas colunas, sem hero, imagens).
+                 Para remover o cabeçalho/hero do topo: sem_hero=true.
+                 Use executar_python com reportlab APENAS para formatações que os parâmetros
+                 da tool não cobrem (paisagem, múltiplas colunas, imagens embutidas).
    - Word:       gerar_word_documento (editável)
    - Excel:      executar_python com openpyxl OU gerar_excel_avancado
    - PowerPoint: gerar_apresentacao_pptx (temas: azul, verde, roxo, claro, escuro)
@@ -3104,7 +3109,8 @@ def chat_tools():
                     tamanho_fonte=tool_input.get("tamanho_fonte", "normal"),
                     espacamento=tool_input.get("espacamento", "normal"),
                     hero_altura=tool_input.get("hero_altura", "normal"),
-                    mostrar_rodape=tool_input.get("mostrar_rodape", True)
+                    mostrar_rodape=tool_input.get("mostrar_rodape", False),
+                    sem_hero=tool_input.get("sem_hero", False),
                 )
                 pdf_b64 = base64.b64encode(pdf_bytes).decode()
                 fname = safe_name(tool_input["titulo"]) + ".pdf"
