@@ -1555,10 +1555,11 @@ TOOLS = [
     {
         "name": "buscar_web",
         "description": (
-            "Busca informações ATUAIS na internet. Use quando o usuário perguntar sobre: "
+            "Busca informações ATUAIS na internet. Use quando o usuário perguntar diretamente sobre: "
             "prazos fiscais atuais, legislação recente, notícias tributárias, taxas SELIC, "
-            "índices econômicos, novidades do eSocial/EFD-Reinf, qualquer informação que pode "
-            "ter mudado recentemente. SEMPRE use antes de responder sobre prazos e alíquotas."
+            "índices econômicos, novidades do eSocial/EFD-Reinf. "
+            "NÃO use antes de gerar PDFs ou documentos — isso causa timeout. "
+            "Use apenas em perguntas diretas onde a informação pode ter mudado recentemente."
         ),
         "input_schema": {
             "type": "object",
@@ -2756,7 +2757,9 @@ Se a tool falhar, mostre o erro — nunca diga que funcionou sem ter funcionado.
 
 8. GRÁFICOS: barras, linhas, pizza, dispersão — use as tools de gráfico.
 
-9. BUSCA WEB: buscar_web SEMPRE antes de responder sobre prazos, alíquotas, legislação nova.
+9. BUSCA WEB: use buscar_web quando o usuário perguntar diretamente sobre prazos, alíquotas ou
+   legislação recente em conversa. NÃO use buscar_web antes de gerar PDFs ou documentos — gere
+   o documento direto com o conhecimento disponível. A busca antes de gerar causa timeout.
 
 10. MEMÓRIA AUTOMÁTICA:
     - USE ler_memoria no início de conversas importantes
