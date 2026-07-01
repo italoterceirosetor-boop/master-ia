@@ -1485,51 +1485,6 @@ def tool_excel_avancado(titulo, colunas, linhas, grafico_tipo=None, grafico_seri
 # ══════════════════════════════════════════════════════════════════
 TOOLS = [
     {
-        "name": "gerar_pdf_documento",
-        "description": (
-            "Gera PDF profissional. Use para qualquer pedido de PDF, guia, relatório ou documento.\n"
-            "CONTEÚDO em markdown: ## seções, - listas, | tabelas |, **negrito**, blocos com ```.\n"
-            "REGRAS DE QUALIDADE:\n"
-            "- Somente português brasileiro. Zero palavras em inglês ou outro idioma.\n"
-            "- NUNCA invente leis. Cite só o que existe de verdade.\n"
-            "- Alíquota interna RO = 19,5% (Leis 5.629/2023 e 5.634/2023, desde jan/2024).\n"
-            "- PARTILHA DIFAL: desde 2024 = 100% destino, 0% origem. NÃO use 40/60%.\n"
-            "PARÂMETROS — use SEMPRE que o usuário pedir mudança visual:\n"
-            "  tamanho_fonte: 'pequeno'(8pt) | 'normal'(9pt) | 'grande'(11pt) | 'muito_grande'(13pt)\n"
-            "  hero_altura: 'pequeno'(3cm, texto perto do topo) | 'normal'(6cm) | 'grande'(8cm)\n"
-            "  espacamento: 'compacto' | 'normal' | 'espacoso'\n"
-            "  tema: 'padrao'(azul) | 'verde' | 'roxo' | 'escuro' | 'vermelho' | 'laranja' | 'marinho' | 'cinza' | 'dourado' | 'teal'\n"
-            "  uma_pagina: true = compactar em 1 folha A4\n"
-            "  sem_circulos: true = remove círculos decorativos\n"
-            "  mostrar_rodape: false = oculta rodapé\n"
-            "MAPEAMENTO OBRIGATÓRIO de pedido para parâmetro:\n"
-            "  'letras maiores' → tamanho_fonte='grande'\n"
-            "  'letras muito grandes' → tamanho_fonte='muito_grande'\n"
-            "  'letras menores' → tamanho_fonte='pequeno'\n"
-            "  'perto do cabeçalho/topo' → hero_altura='pequeno'\n"
-            "  'só uma página/folha' → uma_pagina=true\n"
-            "  'compacto' → uma_pagina=true, espacamento='compacto'\n"
-            "  'sem círculos' → sem_circulos=true\n"
-            "  'verde/roxo/escuro/vermelho/laranja/marinho/cinza/dourado/teal' → tema correspondente\n"
-            "  'sem rodapé' → mostrar_rodape=false"
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "titulo":         {"type": "string"},
-                "conteudo":       {"type": "string", "description": "Markdown em português brasileiro"},
-                "tema":           {"type": "string",  "enum": ["padrao","verde","roxo","escuro","vermelho","laranja","marinho","cinza","dourado","teal"]},
-                "uma_pagina":     {"type": "boolean"},
-                "sem_circulos":   {"type": "boolean"},
-                "tamanho_fonte":  {"type": "string",  "enum": ["pequeno","normal","grande","muito_grande"]},
-                "espacamento":    {"type": "string",  "enum": ["compacto","normal","espacoso"]},
-                "hero_altura":    {"type": "string",  "enum": ["pequeno","normal","grande"]},
-                "mostrar_rodape": {"type": "boolean"}
-            },
-            "required": ["titulo", "conteudo"]
-        }
-    },
-    {
         "name": "gerar_word_documento",
         "description": (
             "Gera um documento Word (.docx) profissional formatado. Use quando o usuário pedir Word, "
@@ -2793,8 +2748,7 @@ CONFERÊNCIA FISCAL EM SCRIPT — OBRIGATÓRIO:
 ═══════════════════════════════════════════════════════
 FORMATAÇÃO DE PDF — REGRAS OBRIGATÓRIAS
 ═══════════════════════════════════════════════════════
-O parâmetro `conteudo` do gerar_pdf_documento é markdown. A qualidade do PDF depende de como
-você formata esse markdown. SIGA ESTAS REGRAS:
+Ao gerar PDFs via executar_python com reportlab, use estes padrões de conteúdo e estrutura:
 
 ESTRUTURA OBRIGATÓRIA:
   # Seção Principal    → fundo azul claro, destaque visual (use para blocos importantes)
@@ -3363,13 +3317,10 @@ def chat_tools():
                 f"Conteúdo markdown:\n{_cd}\n"
                 f"═══════════════════════════════════════════════════════════\n"
                 f"\nREGRA ABSOLUTA para edições: quando o usuário pedir para modificar este documento, "
-                f"SEMPRE chame a tool gerar_pdf_documento (nunca diga que gerou sem chamar a tool). "
-                f"— Mudanças VISUAIS (cor, fonte, tamanho, hero, círculos, orientação, espaçamento): "
-                f"use o conteúdo markdown acima sem alterar o texto, mude apenas os PARÂMETROS da tool. "
-                f"— Mudanças de CONTEÚDO (remover seção, compactar texto, reformatar tabela, retirar linha): "
-                f"reescreva o markdown com a mudança solicitada e passe como 'conteudo' na tool. "
+                f"SEMPRE use executar_python com reportlab (nunca diga que gerou sem chamar a tool). "
+                f"Use o conteúdo acima como base, aplique as mudanças solicitadas e gere um novo PDF. "
                 f"O título deve ser mantido igual, a menos que o usuário peça para mudar. "
-                f"NUNCA finja ter gerado o PDF sem chamar a tool gerar_pdf_documento."
+                f"NUNCA finja ter gerado o PDF sem chamar executar_python."
             )
 
     # ── Loop multi-step ──────────────────────────────────────────
