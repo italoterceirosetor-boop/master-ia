@@ -1485,6 +1485,53 @@ def tool_excel_avancado(titulo, colunas, linhas, grafico_tipo=None, grafico_seri
 # ══════════════════════════════════════════════════════════════════
 TOOLS = [
     {
+        "name": "gerar_pdf_documento",
+        "description": (
+            "Gera PDF profissional. Use para qualquer pedido de PDF, guia, relatório ou documento.\n"
+            "CONTEÚDO em markdown: ## seções, - listas, | tabelas |, **negrito**, blocos com ```.\n"
+            "REGRAS DE QUALIDADE:\n"
+            "- Somente português brasileiro. Zero palavras em inglês ou outro idioma.\n"
+            "- NUNCA invente leis. Cite só o que existe de verdade.\n"
+            "- Alíquota interna RO = 19,5% (Leis 5.629/2023 e 5.634/2023, desde jan/2024).\n"
+            "- PARTILHA DIFAL: desde 2024 = 100% destino, 0% origem. NÃO use 40/60%.\n"
+            "PARÂMETROS — use SEMPRE que o usuário pedir mudança visual:\n"
+            "  tamanho_fonte: 'pequeno'(8pt) | 'normal'(9pt) | 'grande'(11pt) | 'muito_grande'(13pt)\n"
+            "  hero_altura: 'pequeno'(3cm, texto perto do topo) | 'normal'(6cm) | 'grande'(8cm)\n"
+            "  espacamento: 'compacto' | 'normal' | 'espacoso'\n"
+            "  tema: 'padrao'(azul) | 'verde' | 'roxo' | 'escuro' | 'vermelho' | 'laranja' | 'marinho' | 'cinza' | 'dourado' | 'teal'\n"
+            "  uma_pagina: true = compactar em 1 folha A4\n"
+            "  sem_circulos: true = remove círculos decorativos do hero\n"
+            "  mostrar_rodape: SEMPRE passe false (padrão obrigatório) — só passe true se o usuário\n"
+            "                  pedir explicitamente para mostrar 'Gerado por Master IA'.\n"
+            "MAPEAMENTO OBRIGATÓRIO de pedido para parâmetro:\n"
+            "  'letras maiores' → tamanho_fonte='grande'\n"
+            "  'letras muito grandes' → tamanho_fonte='muito_grande'\n"
+            "  'letras menores' → tamanho_fonte='pequeno'\n"
+            "  'perto do cabeçalho/topo' → hero_altura='pequeno'\n"
+            "  'só uma página/folha' → uma_pagina=true\n"
+            "  'compacto' → uma_pagina=true, espacamento='compacto'\n"
+            "  'sem círculos' → sem_circulos=true\n"
+            "  'verde/roxo/escuro/vermelho/laranja/marinho/cinza/dourado/teal' → tema correspondente\n"
+            "Use executar_python com reportlab APENAS quando o usuário pedir formatação totalmente\n"
+            "customizada que os parâmetros acima não cobrem (ex: paisagem, múltiplas colunas, imagens)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "titulo":         {"type": "string"},
+                "conteudo":       {"type": "string", "description": "Markdown em português brasileiro"},
+                "tema":           {"type": "string",  "enum": ["padrao","verde","roxo","escuro","vermelho","laranja","marinho","cinza","dourado","teal"]},
+                "uma_pagina":     {"type": "boolean"},
+                "sem_circulos":   {"type": "boolean"},
+                "tamanho_fonte":  {"type": "string",  "enum": ["pequeno","normal","grande","muito_grande"]},
+                "espacamento":    {"type": "string",  "enum": ["compacto","normal","espacoso"]},
+                "hero_altura":    {"type": "string",  "enum": ["pequeno","normal","grande"]},
+                "mostrar_rodape": {"type": "boolean"}
+            },
+            "required": ["titulo", "conteudo"]
+        }
+    },
+    {
         "name": "gerar_word_documento",
         "description": (
             "Gera um documento Word (.docx) profissional formatado. Use quando o usuário pedir Word, "
@@ -2674,10 +2721,10 @@ CAPACIDADES COMPLETAS v4.0 — USE TODAS ATIVAMENTE
    Código limpo, comentado em português, com tratamento de erros.
 
 3. DOCUMENTOS PROFISSIONAIS:
-   - PDF:        SEMPRE use executar_python com reportlab (não use gerar_pdf_documento, que é
-                 engessado em parâmetros fixos). Gerar o PDF via Python dá liberdade total para
-                 formatação, edições posteriores, tabelas, cores e estrutura — e é o método padrão
-                 obrigatório para QUALQUER pedido de PDF, mesmo o primeiro pedido da conversa.
+   - PDF:        gerar_pdf_documento — padrão para todos os PDFs. SEMPRE passe mostrar_rodape=false
+                 e sem_circulos=true por padrão, a não ser que o usuário peça explicitamente.
+                 Use executar_python com reportlab APENAS para formatações avançadas que os
+                 parâmetros da tool não cobrem (paisagem, múltiplas colunas, sem hero, imagens).
    - Word:       gerar_word_documento (editável)
    - Excel:      executar_python com openpyxl OU gerar_excel_avancado
    - PowerPoint: gerar_apresentacao_pptx (temas: azul, verde, roxo, claro, escuro)
@@ -2688,10 +2735,8 @@ CAPACIDADES COMPLETAS v4.0 — USE TODAS ATIVAMENTE
 
 REGRA ABSOLUTA — NUNCA AFIRME SEM EXECUTAR:
 Você só pode dizer "PDF gerado", "pronto", "enviado" ou qualquer variação de sucesso DEPOIS de
-ter efetivamente chamado a tool executar_python (ou outra tool de geração) NESTA mesma resposta
-e recebido o resultado com arquivo_b64 preenchido. Se a tool falhar, mostre o erro ao usuário —
-nunca diga que funcionou sem ter funcionado. Se você ainda não chamou nenhuma tool nesta resposta,
-NÃO escreva texto de confirmação — apenas chame a tool.
+ter efetivamente chamado a tool (gerar_pdf_documento ou executar_python) NESTA mesma resposta.
+Se a tool falhar, mostre o erro — nunca diga que funcionou sem ter funcionado.
 
 5. CONFERÊNCIA FISCAL: conferencia_fiscal — valida NF-e, DAS, ISS, folha.
    Detecta CFOPs errados, CNPJs inválidos, valores negativos, alíquotas absurdas.
